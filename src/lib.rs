@@ -16,23 +16,35 @@ pub trait SortedByItem {}
 pub trait SortedByKey {}
 
 // mark common std traits
+impl<I> SortedByItem for std::iter::Empty<I> {}
+impl<I> SortedByItem for std::iter::Once<I> {}
 impl<I: SortedByItem> SortedByItem for std::iter::Take<I> {}
 impl<I: SortedByItem> SortedByItem for std::iter::Skip<I> {}
 impl<I: SortedByItem> SortedByItem for std::iter::StepBy<I> {}
 impl<I: SortedByItem> SortedByItem for std::iter::Cloned<I> {}
+impl<I: SortedByItem> SortedByItem for std::iter::Copied<I> {}
+impl<I: SortedByItem> SortedByItem for std::iter::Fuse<I> {}
+impl<I: SortedByItem, F> SortedByItem for std::iter::Inspect<I, F> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::TakeWhile<I, P> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::SkipWhile<I, P> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::Filter<I, P> {}
+impl<I: SortedByItem + Iterator> SortedByItem for std::iter::Peekable<I> {}
 
 // mark common std traits
+impl<I> SortedByKey for std::iter::Empty<I> {}
+impl<I> SortedByKey for std::iter::Once<I> {}
 impl<I> SortedByKey for std::iter::Enumerate<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::Take<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::Skip<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::StepBy<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::Cloned<I> {}
+impl<I: SortedByKey> SortedByKey for std::iter::Copied<I> {}
+impl<I: SortedByKey> SortedByKey for std::iter::Fuse<I> {}
+impl<I: SortedByKey, F> SortedByKey for std::iter::Inspect<I, F> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::TakeWhile<I, P> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::SkipWhile<I, P> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::Filter<I, P> {}
+impl<I: SortedByKey + Iterator> SortedByKey for std::iter::Peekable<I> {}
 
 impl<T> SortedByItem for std::collections::btree_set::IntoIter<T> {}
 impl<'a, T> SortedByItem for std::collections::btree_set::Iter<'a, T> {}
