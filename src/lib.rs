@@ -23,6 +23,14 @@ impl<I: SortedByItem, P> SortedByItem for std::iter::TakeWhile<I, P> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::SkipWhile<I, P> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::Filter<I, P> {}
 
+// mark common std traits
+impl<I: SortedByKey> SortedByKey for std::iter::Take<I> {}
+impl<I: SortedByKey> SortedByKey for std::iter::Skip<I> {}
+impl<I: SortedByKey> SortedByKey for std::iter::StepBy<I> {}
+impl<I: SortedByKey, P> SortedByKey for std::iter::TakeWhile<I, P> {}
+impl<I: SortedByKey, P> SortedByKey for std::iter::SkipWhile<I, P> {}
+impl<I: SortedByKey, P> SortedByKey for std::iter::Filter<I, P> {}
+
 impl<T> SortedByItem for std::collections::btree_set::IntoIter<T> {}
 impl<'a, T> SortedByItem for std::collections::btree_set::Iter<'a, T> {}
 impl<'a, T> SortedByItem for std::collections::btree_set::Intersection<'a, T> {}
