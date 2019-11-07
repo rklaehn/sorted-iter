@@ -25,6 +25,7 @@ impl<I: SortedByItem, P> SortedByItem for std::iter::SkipWhile<I, P> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::Filter<I, P> {}
 
 // mark common std traits
+impl<I> SortedByKey for std::iter::Enumerate<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::Take<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::Skip<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::StepBy<I> {}
