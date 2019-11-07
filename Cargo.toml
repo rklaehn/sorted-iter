@@ -1,0 +1,17 @@
+[package]
+name = "sorted-iter"
+version = "0.1.0"
+authors = ["Rüdiger Klaehn <rklaehn@protonmail.com>"]
+description = "Typesafe extensions for sorted iterators"
+repository = "https://github.com/rklaehn/sorted-iter"
+license = "MIT OR Apache-2.0"
+keywords = ["iterator", "sorted", "set"]
+categories = ["data-structures"]
+edition = "2018"
+readme = "README.md"
+homepage = "https://github.com/rklaehn"
+[dependencies]
+
+[dev-dependencies]
+quickcheck = "0.9.0"
+quickcheck_macros = "0.8.0"
