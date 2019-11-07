@@ -45,6 +45,7 @@ impl<I: SortedByKey, P> SortedByKey for std::iter::TakeWhile<I, P> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::SkipWhile<I, P> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::Filter<I, P> {}
 impl<I: SortedByKey + Iterator> SortedByKey for std::iter::Peekable<I> {}
+impl<I: SortedByItem, J> SortedByKey for std::iter::Zip<I, J> {}
 
 impl<T> SortedByItem for std::collections::btree_set::IntoIter<T> {}
 impl<'a, T> SortedByItem for std::collections::btree_set::Iter<'a, T> {}
@@ -667,6 +668,41 @@ mod tests {
                 .symmetric_difference(b.clone().into_iter())
                 .collect();
             binary_op(a, b, expected, actual)
+        }
+
+        fn sorted_by_key<K, V, I: Iterator<Item = (K, V)> + SortedByKey>(_v: I) {}
+        fn sorted_by_item<K, I: Iterator<Item = K> + SortedByItem>(_v: I) {}
+
+        #[test]
+        fn instances() {
+            let x: BTreeSet<i64> = (0..10).collect();
+            let x = x.iter();
+            // ranges are sorted!
+            sorted_by_item(0i64..10);
+            // ranges are sorted!
+            sorted_by_item(0i64..);
+            // ranges are sorted!
+            sorted_by_item(0i64..=10);
+            // step_by is sorted!
+            sorted_by_item((0i64..10).step_by(2));
+            // fuse is sorted!
+            sorted_by_item((0i64..10).fuse());
+            // cloned is sorted!
+            sorted_by_item(x.clone().cloned());
+            // copied is sorted!
+            sorted_by_item(x.copied());
+            // inspect is sorted!
+            sorted_by_item((0i64..10).inspect(|_| {}));
+            // take is sorted!
+            sorted_by_item((0i64..10).take(1));
+            // take_while is sorted!
+            sorted_by_item((0i64..10).take_while(|_| true));
+            // skip is sorted!
+            sorted_by_item((0i64..10).skip(1));
+            // skip_while is sorted!
+            sorted_by_item((0i64..10).skip_while(|_| true));
+            // skip is sorted!
+            sorted_by_item((0i64..10).filter(|_| true));
         }
     }
 
