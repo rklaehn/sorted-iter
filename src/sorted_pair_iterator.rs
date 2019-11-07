@@ -1,5 +1,6 @@
 use super::*;
 use crate::sorted_iterator::SortedByItem;
+use std::fmt::Debug;
 
 /// marker trait for iterators that are sorted by the key of their Item
 pub trait SortedByKey {}
@@ -161,6 +162,7 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Keys<I: Iterator> {
     i: I,
 }
@@ -181,6 +183,7 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct MapValues<I: Iterator, F> {
     i: I,
     f: F,
