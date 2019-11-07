@@ -44,6 +44,12 @@ from relational algebra / SQL, namely join, left_join, right_join and outer_join
 Instances are provided to allow treating iterators in the standard library that are guaranteed to be
 sorted as sorted iterators.
 
+## Tests
+
+Tests are done using the fantastic [quickcheck] crate, by comparing against the operations defined on
+[BTreeSet] and [BTreeMap].
+
+[quickcheck]: https://github.com/BurntSushi/quickcheck
 [BTreeSet]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 [BTreeMap]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 [take]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.take

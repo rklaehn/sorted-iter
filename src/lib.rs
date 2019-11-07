@@ -10,10 +10,10 @@ use std::cmp::{max, min};
 use std::iter::Peekable;
 
 /// marker trait for iterators that are sorted by their Item
-trait SortedByItem {}
+pub trait SortedByItem {}
 
 /// marker trait for iterators that are sorted by the key of their Item
-trait SortedByKey {}
+pub trait SortedByKey {}
 
 // mark common std traits
 impl<I: SortedByItem> SortedByItem for std::iter::Take<I> {}
@@ -61,7 +61,8 @@ impl<I: Iterator, J: Iterator> SortedByKey for LeftJoin<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for RightJoin<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for OuterJoin<I, J> {}
 
-trait SortedIterator<T> {
+/// set operations for sorted iterators
+pub trait SortedIterator<T> {
     type I: Iterator<Item = T>;
     fn union<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Union<Self::I, J>;
     fn intersection<J: Iterator<Item = T> + SortedByItem>(
@@ -75,7 +76,8 @@ trait SortedIterator<T> {
     ) -> SymmetricDifference<Self::I, J>;
 }
 
-trait SortedPairIterator<K, V> {
+/// relational operations for sorted iterators of pairs
+pub trait SortedPairIterator<K, V> {
     type I: Iterator<Item = (K, V)>;
 
     fn join<W, J: Iterator<Item = (K, W)> + SortedByKey>(self, that: J) -> Join<Self::I, J>;
@@ -140,27 +142,27 @@ impl<K: Ord, V, I: Iterator<Item = (K, V)> + SortedByKey> SortedPairIterator<K, 
     }
 }
 
-struct Union<I: Iterator, J: Iterator> {
+pub struct Union<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
 
-struct Intersection<I: Iterator, J: Iterator> {
+pub struct Intersection<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
 
-struct Difference<I: Iterator, J: Iterator> {
+pub struct Difference<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
 
-struct SymmetricDifference<I: Iterator, J: Iterator> {
+pub struct SymmetricDifference<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
 
-struct Join<I: Iterator, J: Iterator> {
+pub struct Join<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
@@ -203,7 +205,7 @@ where
     }
 }
 
-struct LeftJoin<I: Iterator, J: Iterator> {
+pub struct LeftJoin<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
@@ -238,7 +240,7 @@ where
     }
 }
 
-struct RightJoin<I: Iterator, J: Iterator> {
+pub struct RightJoin<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
@@ -273,7 +275,7 @@ where
     }
 }
 
-struct MapValues<I: Iterator, F> {
+pub struct MapValues<I: Iterator, F> {
     i: I,
     f: F,
 }
@@ -295,7 +297,7 @@ where
     }
 }
 
-struct FilterMapValues<I: Iterator, F> {
+pub struct FilterMapValues<I: Iterator, F> {
     i: I,
     f: F,
 }
@@ -323,7 +325,7 @@ where
     }
 }
 
-struct OuterJoin<I: Iterator, J: Iterator> {
+pub struct OuterJoin<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
 }
