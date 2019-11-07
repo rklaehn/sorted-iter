@@ -10,8 +10,14 @@
 [Docs Badge]: https://img.shields.io/badge/docs-docs.rs-green
 [docs.rs]: https://docs.rs/sorted-iter
 
+# About
+
+This provides typesafe extension for sorted iterators to perform set and relational operations.
+By sorted I mean strictly sorted according to the [Ord] instance of the item or key type.
+
 # TL;DR;
 
+[Relational operations](./examples/relational.rs)
 ```rust
 let city = btreemap!{
     1 => "New York",
@@ -24,16 +30,26 @@ let country = btreemap!{
 let res: Vec<_> = city.iter().join(country.iter()).collect();
 ```
 
-# About
-
-This provides typesafe extension for sorted iterators to perform set and relational operations.
-By sorted I mean strictly sorted according to the [Ord] instance of the item or key type.
+[Set operations](./examples/set.rs)
+```rust
+let primes = btreeset! { 2u64, 3, 5, 7, 11, 13 };
+let fibs = btreeset! { 1u64, 2, 3, 5, 8, 13 };
+let primes = primes.iter();
+let fibs = fibs.iter();
+let nats = 1u64..;
+// both primes and fibs
+let both = primes.clone().intersection(fibs.clone());
+// either primes or fibs
+let either = primes.union(fibs).cloned();
+// natural numbers that are neither
+let neither = nats.difference(either);
+```
 
 ## Sorted iterators
 
 It is possible to efficiently define set operations on sorted iterators. Sorted iterators are
 very common in the standard library. E.g. the elements of a [BTreeSet] or the keys of a [BTreeMap]
-are guaranteed to be sorted according to the element order.
+are guaranteed to be sorted according to the element order, as are iterable ranges like `0..100`.
 
 There are also a number of operations on iterators that preserve the sort order. E.g. if an
 iterator is sorted, [take], [take_while] etc. are going to result in a sorted iterator as well.

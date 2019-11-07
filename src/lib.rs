@@ -19,6 +19,7 @@ pub trait SortedByKey {}
 impl<I: SortedByItem> SortedByItem for std::iter::Take<I> {}
 impl<I: SortedByItem> SortedByItem for std::iter::Skip<I> {}
 impl<I: SortedByItem> SortedByItem for std::iter::StepBy<I> {}
+impl<I: SortedByItem> SortedByItem for std::iter::Cloned<I> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::TakeWhile<I, P> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::SkipWhile<I, P> {}
 impl<I: SortedByItem, P> SortedByItem for std::iter::Filter<I, P> {}
@@ -27,6 +28,7 @@ impl<I: SortedByItem, P> SortedByItem for std::iter::Filter<I, P> {}
 impl<I: SortedByKey> SortedByKey for std::iter::Take<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::Skip<I> {}
 impl<I: SortedByKey> SortedByKey for std::iter::StepBy<I> {}
+impl<I: SortedByKey> SortedByKey for std::iter::Cloned<I> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::TakeWhile<I, P> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::SkipWhile<I, P> {}
 impl<I: SortedByKey, P> SortedByKey for std::iter::Filter<I, P> {}
