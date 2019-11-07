@@ -10,9 +10,25 @@
 [Docs Badge]: https://img.shields.io/badge/docs-docs.rs-green
 [docs.rs]: https://docs.rs/sorted-iter
 
+# TL;DR;
+
+```rust
+let a = btreemap!{
+    1 => "New York",
+    2 => "Tokyo",
+};
+let b = btreemap!{
+    1 => "USA",
+    2 => "Japan",
+};
+let res: Vec<_> = a.iter().join(b.iter()).collect();
+}
+```
+
 # About
 
-This provides typesafe extension for sorted iterators to perform set and relational operations
+This provides typesafe extension for sorted iterators to perform set and relational operations.
+By sorted I mean strictly sorted according to the [Ord] instance of the item or key type.
 
 ## Sorted iterators
 
@@ -54,3 +70,4 @@ Tests are done using the fantastic [quickcheck] crate, by comparing against the 
 [BTreeMap]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 [take]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.take
 [take_while]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.take_while
+[Ord]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
