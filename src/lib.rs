@@ -670,7 +670,6 @@ mod tests {
             binary_op(a, b, expected, actual)
         }
 
-        fn sorted_by_key<K, V, I: Iterator<Item = (K, V)> + SortedByKey>(_v: I) {}
         fn sorted_by_item<K, I: Iterator<Item = K> + SortedByItem>(_v: I) {}
 
         #[test]
@@ -792,6 +791,27 @@ mod tests {
                 .filter_map_values(|v| if v % 2 != 0 { Some(v * 2) } else { None })
                 .collect();
             unary_op(x, expected, actual)
+        }
+
+        fn sorted_by_key<K, V, I: Iterator<Item = (K, V)> + SortedByKey>(_v: I) {}
+
+        #[test]
+        fn instances() {
+            // ranges
+            sorted_by_key((0i64..10).pairs());
+            sorted_by_key((0i64..=10).pairs());
+            sorted_by_key((0i64..).pairs());
+            // skip/take/step/filter
+            sorted_by_key((0i64..).pairs().step_by(1));
+            sorted_by_key((0i64..).pairs().take(1));
+            sorted_by_key((0i64..).pairs().skip(1));
+            sorted_by_key((0i64..).pairs().take_while(|_| true));
+            sorted_by_key((0i64..).pairs().skip_while(|_| true));
+            sorted_by_key((0i64..).pairs().filter(|_| true));
+            // identity
+            sorted_by_key((0i64..).pairs().peekable());
+            sorted_by_key((0i64..).pairs().fuse());
+            sorted_by_key((0i64..).pairs().inspect(|_| {}));
         }
     }
 }
