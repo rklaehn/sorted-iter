@@ -45,6 +45,7 @@ impl<T> SortedByItem for std::ops::Range<T> {}
 impl<T> SortedByItem for std::ops::RangeInclusive<T> {}
 impl<T> SortedByItem for std::ops::RangeFrom<T> {}
 
+impl<I: Iterator> SortedByItem for Keys<I> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Union<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Intersection<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Difference<I, J> {}
@@ -55,6 +56,10 @@ impl<'a, K, V> SortedByKey for std::collections::btree_map::Iter<'a, K, V> {}
 impl<'a, K, V> SortedByKey for std::collections::btree_map::IterMut<'a, K, V> {}
 impl<'a, K, V> SortedByKey for std::collections::btree_map::Range<'a, K, V> {}
 impl<'a, K, V> SortedByKey for std::collections::btree_map::RangeMut<'a, K, V> {}
+
+impl<I: Iterator + SortedByItem> SortedByKey for Pairs<I> {}
+impl<I: Iterator, F> SortedByKey for MapValues<I, F> {}
+impl<I: Iterator, F> SortedByKey for FilterMapValues<I, F> {}
 
 impl<I: Iterator, J: Iterator> SortedByKey for Join<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for LeftJoin<I, J> {}
@@ -74,11 +79,18 @@ pub trait SortedIterator<T> {
         self,
         that: J,
     ) -> SymmetricDifference<Self::I, J>;
+    fn pairs(self) -> Pairs<Self::I>;
 }
 
 /// relational operations for sorted iterators of pairs
 pub trait SortedPairIterator<K, V> {
     type I: Iterator<Item = (K, V)>;
+
+    fn map_values<W, F: (FnMut(V) -> W)>(self, f: F) -> MapValues<Self::I, F>;
+
+    fn filter_map_values<W, F: (FnMut(V) -> W)>(self, f: F) -> FilterMapValues<Self::I, F>;
+
+    fn keys(self) -> Keys<Self::I>;
 
     fn join<W, J: Iterator<Item = (K, W)> + SortedByKey>(self, that: J) -> Join<Self::I, J>;
 
@@ -96,10 +108,6 @@ pub trait SortedPairIterator<K, V> {
         self,
         that: J,
     ) -> OuterJoin<Self::I, J>;
-
-    fn map_values<W, F: (FnMut(V) -> W)>(self, f: F) -> MapValues<Self::I, F>;
-
-    fn filter_map_values<W, F: (FnMut(V) -> W)>(self, f: F) -> FilterMapValues<Self::I, F>;
 }
 
 impl<K: Ord, V, I: Iterator<Item = (K, V)> + SortedByKey> SortedPairIterator<K, V> for I {
@@ -140,6 +148,10 @@ impl<K: Ord, V, I: Iterator<Item = (K, V)> + SortedByKey> SortedPairIterator<K, 
     fn filter_map_values<W, F: (FnMut(V) -> W)>(self, f: F) -> FilterMapValues<Self::I, F> {
         FilterMapValues { i: self, f }
     }
+
+    fn keys(self) -> Keys<Self::I> {
+        Keys { i: self }
+    }
 }
 
 pub struct Union<I: Iterator, J: Iterator> {
@@ -160,6 +172,22 @@ pub struct Difference<I: Iterator, J: Iterator> {
 pub struct SymmetricDifference<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
+}
+
+pub struct Pairs<I: Iterator> {
+    i: I,
+}
+
+impl<I: Iterator> Iterator for Pairs<I> {
+    type Item = (I::Item, ());
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.i.next().map(|k| (k, ()))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.i.size_hint()
+    }
 }
 
 pub struct Join<I: Iterator, J: Iterator> {
@@ -272,6 +300,26 @@ where
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.b.size_hint()
+    }
+}
+
+pub struct Keys<I: Iterator> {
+    i: I,
+}
+
+impl<K, V, I> Iterator for Keys<I>
+where
+    K: Ord,
+    I: Iterator<Item = (K, V)>,
+{
+    type Item = K;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.i.next().map(|(k, _)| k)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.i.size_hint()
     }
 }
 
@@ -526,6 +574,9 @@ impl<T: Ord, I: Iterator<Item = T> + SortedByItem> SortedIterator<T> for I {
             a: self.peekable(),
             b: that.peekable(),
         }
+    }
+    fn pairs(self) -> Pairs<Self::I> {
+        Pairs { i: self }
     }
 }
 
