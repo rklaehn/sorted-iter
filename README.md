@@ -13,16 +13,15 @@
 # TL;DR;
 
 ```rust
-let a = btreemap!{
+let city = btreemap!{
     1 => "New York",
     2 => "Tokyo",
 };
-let b = btreemap!{
+let country = btreemap!{
     1 => "USA",
     2 => "Japan",
 };
-let res: Vec<_> = a.iter().join(b.iter()).collect();
-}
+let res: Vec<_> = city.iter().join(country.iter()).collect();
 ```
 
 # About

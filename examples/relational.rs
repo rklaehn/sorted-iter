@@ -1,21 +1,18 @@
 extern crate sorted_iter;
-
-#[macro_use]
 extern crate maplit;
 
-use sorted_iter::{SortedIterator, SortedPairIterator};
 use maplit::*;
+use sorted_iter::SortedPairIterator;
 
 fn main() {
-    let a = btreemap!{
+    let city = btreemap! {
         1 => "New York",
         2 => "Tokyo",
     };
-    let b = btreemap!{
+    let country = btreemap! {
         1 => "USA",
         2 => "Japan",
     };
-    println!("{:?} {:?}", a, b);
-    let res: Vec<_> = a.iter().join(b.iter()).collect();
+    let res: Vec<_> = city.iter().join(country.iter()).collect();
     println!("{:?}", res);
 }
