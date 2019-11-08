@@ -8,6 +8,19 @@ pub struct Union<I: Iterator, J: Iterator> {
     b: Peekable<J>,
 }
 
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Union<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
+}
+
 impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Union<I, J> {
     type Item = K;
 
@@ -40,6 +53,19 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Union<I,
 pub struct Intersection<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
+}
+
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Intersection<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
 }
 
 impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Intersection<I, J> {
@@ -79,6 +105,19 @@ pub struct Difference<I: Iterator, J: Iterator> {
     b: Peekable<J>,
 }
 
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Difference<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
+}
+
 impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Difference<I, J> {
     type Item = K;
 
@@ -116,6 +155,19 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Differen
 pub struct SymmetricDifference<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
+}
+
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for SymmetricDifference<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
 }
 
 impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for SymmetricDifference<I, J> {

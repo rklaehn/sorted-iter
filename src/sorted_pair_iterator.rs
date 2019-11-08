@@ -54,6 +54,19 @@ pub struct Join<I: Iterator, J: Iterator> {
     b: Peekable<J>,
 }
 
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Join<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
+}
+
 impl<K, A, B, I, J> Iterator for Join<I, J>
 where
     K: Ord,
@@ -95,6 +108,19 @@ where
 pub struct LeftJoin<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
+}
+
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for LeftJoin<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
 }
 
 impl<K, A, B, I, J> Iterator for LeftJoin<I, J>
@@ -159,6 +185,19 @@ where
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.b.size_hint()
+    }
+}
+
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for RightJoin<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
     }
 }
 
@@ -237,6 +276,19 @@ where
 pub struct OuterJoin<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
+}
+
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for OuterJoin<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
 }
 
 // all this just so I could avoid having this expression twice in the iterator.
