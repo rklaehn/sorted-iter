@@ -1,57 +1,17 @@
+//! implementation of the sorted_pair_iterator relational operations
 use super::*;
-use crate::sorted_iterator::SortedByItem;
+use std::iter::Peekable;
+use std::cmp::{max, min};
+use std::cmp::Ordering::*;
 use std::fmt::Debug;
+use crate::sorted_iterator::SortedByItem;
 
 /// marker trait for iterators that are sorted by the key of their Item
 pub trait SortedByKey {}
 
-impl<K: Ord, V, I: Iterator<Item = (K, V)> + SortedByKey> SortedPairIterator<K, V> for I {
-    type I = I;
-
-    fn join<W, J: Iterator<Item = (K, W)> + SortedByKey>(self, that: J) -> Join<I, J> {
-        Join {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-
-    fn left_join<W, J: Iterator<Item = (K, W)> + SortedByKey>(self, that: J) -> LeftJoin<I, J> {
-        LeftJoin {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-
-    fn right_join<W, J: Iterator<Item = (K, W)> + SortedByKey>(self, that: J) -> RightJoin<I, J> {
-        RightJoin {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-
-    fn outer_join<W, J: Iterator<Item = (K, W)> + SortedByKey>(self, that: J) -> OuterJoin<I, J> {
-        OuterJoin {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-
-    fn map_values<W, F: (FnMut(V) -> W)>(self, f: F) -> MapValues<Self::I, F> {
-        MapValues { i: self, f }
-    }
-
-    fn filter_map_values<W, F: (FnMut(V) -> W)>(self, f: F) -> FilterMapValues<Self::I, F> {
-        FilterMapValues { i: self, f }
-    }
-
-    fn keys(self) -> Keys<Self::I> {
-        Keys { i: self }
-    }
-}
-
 pub struct Join<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 impl<K, A, B, I, J> Iterator for Join<I, J>
@@ -106,8 +66,8 @@ where
 }
 
 pub struct LeftJoin<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 impl<K, A, B, I, J> Iterator for LeftJoin<I, J>
@@ -154,8 +114,8 @@ where
 }
 
 pub struct RightJoin<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 impl<K, A, B, I, J> Iterator for RightJoin<I, J>
@@ -202,8 +162,8 @@ where
 }
 
 pub struct OuterJoin<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 // all this just so I could avoid having this expression twice in the iterator.
@@ -273,7 +233,7 @@ where
 
 #[derive(Clone, Debug)]
 pub struct Keys<I: Iterator> {
-    i: I,
+    pub(crate) i: I,
 }
 
 impl<K, V, I> Iterator for Keys<I>
@@ -294,8 +254,8 @@ where
 
 #[derive(Clone, Debug)]
 pub struct MapValues<I: Iterator, F> {
-    i: I,
-    f: F,
+    pub(crate) i: I,
+    pub(crate) f: F,
 }
 
 impl<K, V, W, I, F> Iterator for MapValues<I, F>
@@ -317,8 +277,8 @@ where
 
 #[derive(Clone, Debug)]
 pub struct FilterMapValues<I: Iterator, F> {
-    i: I,
-    f: F,
+    pub(crate) i: I,
+    pub(crate) f: F,
 }
 
 impl<K, V, W, I, F> Iterator for FilterMapValues<I, F>
@@ -341,6 +301,23 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         let (_, imax) = self.i.size_hint();
         (0, imax)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AssumeSortedByKey<I: Iterator> {
+    pub(crate) i: I,
+}
+
+impl<I: Iterator> Iterator for AssumeSortedByKey<I> {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.i.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.i.size_hint()
     }
 }
 
@@ -370,6 +347,7 @@ impl<I: Iterator, J: Iterator> SortedByKey for Join<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for LeftJoin<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for RightJoin<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for OuterJoin<I, J> {}
+impl<I: Iterator> SortedByKey for AssumeSortedByKey<I> {}
 
 impl<K, V> SortedByKey for std::collections::btree_map::IntoIter<K, V> {}
 impl<'a, K, V> SortedByKey for std::collections::btree_map::Iter<'a, K, V> {}

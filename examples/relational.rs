@@ -2,7 +2,7 @@ extern crate maplit;
 extern crate sorted_iter;
 
 use maplit::*;
-use sorted_iter::SortedPairIterator;
+use sorted_iter::SortedPairIteratorExt;
 
 fn main() {
     let city = btreemap! {

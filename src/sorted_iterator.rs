@@ -1,45 +1,15 @@
+//! implementation of the sorted_iterator set operations
 use super::*;
+use std::iter::Peekable;
+use std::cmp::{max, min};
+use std::cmp::Ordering::*;
 
 /// marker trait for iterators that are sorted by their Item
 pub trait SortedByItem {}
 
-impl<T: Ord, I: Iterator<Item = T> + SortedByItem> SortedIterator<T> for I {
-    type I = I;
-    fn union<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Union<I, J> {
-        Union {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn intersection<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Intersection<I, J> {
-        Intersection {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn difference<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Difference<I, J> {
-        Difference {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn symmetric_difference<J: Iterator<Item = T> + SortedByItem>(
-        self,
-        that: J,
-    ) -> SymmetricDifference<I, J> {
-        SymmetricDifference {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn pairs(self) -> Pairs<Self::I> {
-        Pairs { i: self }
-    }
-}
-
 pub struct Union<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Union<I, J>
@@ -85,8 +55,8 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Union<I,
 }
 
 pub struct Intersection<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Intersection<I, J>
@@ -135,8 +105,8 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Intersec
 }
 
 pub struct Difference<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Difference<I, J>
@@ -187,8 +157,8 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Differen
 }
 
 pub struct SymmetricDifference<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
+    pub(crate) a: Peekable<I>,
+    pub(crate) b: Peekable<J>,
 }
 
 impl<I: Iterator + Clone, J: Iterator + Clone> Clone for SymmetricDifference<I, J>
@@ -228,7 +198,7 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Symmetri
 
 #[derive(Clone, Debug)]
 pub struct Pairs<I: Iterator> {
-    i: I,
+    pub(crate) i: I,
 }
 
 impl<I: Iterator> Iterator for Pairs<I> {
@@ -236,6 +206,23 @@ impl<I: Iterator> Iterator for Pairs<I> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.i.next().map(|k| (k, ()))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.i.size_hint()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AssumeSortedByItem<I: Iterator> {
+    pub(crate) i: I,
+}
+
+impl<I: Iterator> Iterator for AssumeSortedByItem<I> {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.i.next()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -273,6 +260,7 @@ impl<T> SortedByItem for std::ops::RangeInclusive<T> {}
 impl<T> SortedByItem for std::ops::RangeFrom<T> {}
 
 impl<I: Iterator> SortedByItem for Keys<I> {}
+impl<I: Iterator> SortedByItem for AssumeSortedByItem<I> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Union<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Intersection<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Difference<I, J> {}
