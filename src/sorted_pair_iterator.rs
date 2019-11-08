@@ -321,6 +321,10 @@ impl<I: Iterator> Iterator for AssumeSortedByKey<I> {
     }
 }
 
+// not sure how to model this: an iterator that is sorted by key automatically sorted by item as well,
+// since the key comes first in the order of a pair. The reverse is not true, since e.g. (0,1), (0,2)
+// are sorted by item, but not strictly sorted by key!
+
 // mark common std traits
 impl<I> SortedByKey for std::iter::Empty<I> {}
 impl<I> SortedByKey for std::iter::Once<I> {}
