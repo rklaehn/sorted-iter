@@ -83,11 +83,18 @@
 //! use sorted_iter::sorted_iterator::SortedByItem;
 //! use sorted_iter::sorted_pair_iterator::SortedByKey;
 //!
-//! struct MySortedIter<T> { whatever: T }
-//! struct MySortedPairIter<K, V> { whatever: (K, V) }
+//! pub struct MySortedIter<T> { whatever: T }
+//! pub struct MySortedPairIter<K, V> { whatever: (K, V) }
 //! 
 //! impl<T> SortedByItem for MySortedIter<T> {}
 //! impl<K, V> SortedByKey for MySortedPairIter<K, V> {}
+//! ```
+//! 
+//! By reexporting the extension traits, you get a seamless experience for people using your library.
+//! 
+//! ```
+//! extern crate sorted_iter;
+//! pub use sorted_iter::{SortedIteratorExt, SortedPairIteratorExt};
 //! ```
 #[cfg(test)]
 extern crate quickcheck;
