@@ -54,19 +54,6 @@ pub struct Join<I: Iterator, J: Iterator> {
     b: Peekable<J>,
 }
 
-impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Join<I, J>
-where
-    I::Item: Clone,
-    J::Item: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            a: self.a.clone(),
-            b: self.b.clone(),
-        }
-    }
-}
-
 impl<K, A, B, I, J> Iterator for Join<I, J>
 where
     K: Ord,
@@ -105,12 +92,7 @@ where
     }
 }
 
-pub struct LeftJoin<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
-}
-
-impl<I: Iterator + Clone, J: Iterator + Clone> Clone for LeftJoin<I, J>
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Join<I, J>
 where
     I::Item: Clone,
     J::Item: Clone,
@@ -121,6 +103,11 @@ where
             b: self.b.clone(),
         }
     }
+}
+
+pub struct LeftJoin<I: Iterator, J: Iterator> {
+    a: Peekable<I>,
+    b: Peekable<J>,
 }
 
 impl<K, A, B, I, J> Iterator for LeftJoin<I, J>
@@ -150,6 +137,19 @@ where
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.a.size_hint()
+    }
+}
+
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for LeftJoin<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
     }
 }
 
@@ -189,6 +189,76 @@ where
 }
 
 impl<I: Iterator + Clone, J: Iterator + Clone> Clone for RightJoin<I, J>
+where
+    I::Item: Clone,
+    J::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            a: self.a.clone(),
+            b: self.b.clone(),
+        }
+    }
+}
+
+pub struct OuterJoin<I: Iterator, J: Iterator> {
+    a: Peekable<I>,
+    b: Peekable<J>,
+}
+
+// all this just so I could avoid having this expression twice in the iterator.
+// Sometimes making things DRY in rust is hard...
+impl<K, A, B, I, J> OuterJoin<I, J>
+where
+    K: Ord,
+    I: Iterator<Item = (K, A)>,
+    J: Iterator<Item = (K, B)>,
+{
+    // type alias does not help much here...
+    #[allow(clippy::type_complexity)]
+    fn next_a(&mut self) -> Option<(K, (Option<A>, Option<B>))> {
+        self.a.next().map(|(ak, av)| (ak, (Some(av), None)))
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn next_b(&mut self) -> Option<(K, (Option<A>, Option<B>))> {
+        self.b.next().map(|(bk, bv)| (bk, (None, Some(bv))))
+    }
+}
+
+impl<K, A, B, I, J> Iterator for OuterJoin<I, J>
+where
+    K: Ord,
+    I: Iterator<Item = (K, A)>,
+    J: Iterator<Item = (K, B)>,
+{
+    type Item = (K, (Option<A>, Option<B>));
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let (Some((ak, _)), Some((bk, _))) = (self.a.peek(), self.b.peek()) {
+            match ak.cmp(&bk) {
+                Less => self.next_a(),
+                Greater => self.next_b(),
+                Equal => self
+                    .a
+                    .next()
+                    .and_then(|(ak, av)| self.b.next().map(|(_, bv)| (ak, (Some(av), Some(bv))))),
+            }
+        } else {
+            self.next_a().or_else(|| self.next_b())
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (amin, amax) = self.a.size_hint();
+        let (bmin, bmax) = self.b.size_hint();
+        let rmin = max(amin, bmin);
+        let rmax = amax.and_then(|amax| bmax.map(|bmax| amax + bmax));
+        (rmin, rmax)
+    }
+}
+
+impl<I: Iterator + Clone, J: Iterator + Clone> Clone for OuterJoin<I, J>
 where
     I::Item: Clone,
     J::Item: Clone,
@@ -245,6 +315,7 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct FilterMapValues<I: Iterator, F> {
     i: I,
     f: F,
@@ -270,75 +341,6 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         let (_, imax) = self.i.size_hint();
         (0, imax)
-    }
-}
-
-pub struct OuterJoin<I: Iterator, J: Iterator> {
-    a: Peekable<I>,
-    b: Peekable<J>,
-}
-
-impl<I: Iterator + Clone, J: Iterator + Clone> Clone for OuterJoin<I, J>
-where
-    I::Item: Clone,
-    J::Item: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            a: self.a.clone(),
-            b: self.b.clone(),
-        }
-    }
-}
-
-// all this just so I could avoid having this expression twice in the iterator.
-// Sometimes making things DRY in rust is hard...
-impl<K, A, B, I, J> OuterJoin<I, J>
-where
-    K: Ord,
-    I: Iterator<Item = (K, A)>,
-    J: Iterator<Item = (K, B)>,
-{
-    #[allow(clippy::type_complexity)]
-    fn next_a(&mut self) -> Option<(K, (Option<A>, Option<B>))> {
-        self.a.next().map(|(ak, av)| (ak, (Some(av), None)))
-    }
-
-    #[allow(clippy::type_complexity)]
-    fn next_b(&mut self) -> Option<(K, (Option<A>, Option<B>))> {
-        self.b.next().map(|(bk, bv)| (bk, (None, Some(bv))))
-    }
-}
-
-impl<K, A, B, I, J> Iterator for OuterJoin<I, J>
-where
-    K: Ord,
-    I: Iterator<Item = (K, A)>,
-    J: Iterator<Item = (K, B)>,
-{
-    type Item = (K, (Option<A>, Option<B>));
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let (Some((ak, _)), Some((bk, _))) = (self.a.peek(), self.b.peek()) {
-            match ak.cmp(&bk) {
-                Less => self.next_a(),
-                Greater => self.next_b(),
-                Equal => self
-                    .a
-                    .next()
-                    .and_then(|(ak, av)| self.b.next().map(|(_, bv)| (ak, (Some(av), Some(bv))))),
-            }
-        } else {
-            self.next_a().or_else(|| self.next_b())
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let (amin, amax) = self.a.size_hint();
-        let (bmin, bmax) = self.b.size_hint();
-        let rmin = max(amin, bmin);
-        let rmax = amax.and_then(|amax| bmax.map(|bmax| amax + bmax));
-        (rmin, rmax)
     }
 }
 

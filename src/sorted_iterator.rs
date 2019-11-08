@@ -3,6 +3,40 @@ use super::*;
 /// marker trait for iterators that are sorted by their Item
 pub trait SortedByItem {}
 
+impl<T: Ord, I: Iterator<Item = T> + SortedByItem> SortedIterator<T> for I {
+    type I = I;
+    fn union<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Union<I, J> {
+        Union {
+            a: self.peekable(),
+            b: that.peekable(),
+        }
+    }
+    fn intersection<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Intersection<I, J> {
+        Intersection {
+            a: self.peekable(),
+            b: that.peekable(),
+        }
+    }
+    fn difference<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Difference<I, J> {
+        Difference {
+            a: self.peekable(),
+            b: that.peekable(),
+        }
+    }
+    fn symmetric_difference<J: Iterator<Item = T> + SortedByItem>(
+        self,
+        that: J,
+    ) -> SymmetricDifference<I, J> {
+        SymmetricDifference {
+            a: self.peekable(),
+            b: that.peekable(),
+        }
+    }
+    fn pairs(self) -> Pairs<Self::I> {
+        Pairs { i: self }
+    }
+}
+
 pub struct Union<I: Iterator, J: Iterator> {
     a: Peekable<I>,
     b: Peekable<J>,
@@ -192,6 +226,7 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Symmetri
     // }
 }
 
+#[derive(Clone, Debug)]
 pub struct Pairs<I: Iterator> {
     i: I,
 }
@@ -205,40 +240,6 @@ impl<I: Iterator> Iterator for Pairs<I> {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.i.size_hint()
-    }
-}
-
-impl<T: Ord, I: Iterator<Item = T> + SortedByItem> SortedIterator<T> for I {
-    type I = I;
-    fn union<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Union<I, J> {
-        Union {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn intersection<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Intersection<I, J> {
-        Intersection {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn difference<J: Iterator<Item = T> + SortedByItem>(self, that: J) -> Difference<I, J> {
-        Difference {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn symmetric_difference<J: Iterator<Item = T> + SortedByItem>(
-        self,
-        that: J,
-    ) -> SymmetricDifference<I, J> {
-        SymmetricDifference {
-            a: self.peekable(),
-            b: that.peekable(),
-        }
-    }
-    fn pairs(self) -> Pairs<Self::I> {
-        Pairs { i: self }
     }
 }
 
