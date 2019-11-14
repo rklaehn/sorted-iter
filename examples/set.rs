@@ -2,7 +2,7 @@ extern crate maplit;
 extern crate sorted_iter;
 
 use maplit::*;
-use sorted_iter::SortedIteratorExt;
+use sorted_iter::SortedIterator;
 
 fn v<E>(x: impl Iterator<Item = E>) -> Vec<E> {
     x.take(10).collect()
