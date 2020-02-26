@@ -1,8 +1,9 @@
 //! implementation of the sorted_iterator set operations
 use super::*;
 use std::iter::Peekable;
-use std::cmp::{max, min};
+use std::cmp::{max, min, Ordering, Reverse};
 use std::cmp::Ordering::*;
+use std::collections::BinaryHeap;
 
 /// marker trait for iterators that are sorted by their Item
 pub trait SortedByItem {}
@@ -51,6 +52,94 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Union<I,
         // no overlap
         let rmax = amax.and_then(|amax| bmax.map(|bmax| amax + bmax));
         (rmin, rmax)
+    }
+}
+
+// An iterator with the first item pulled out.
+pub(crate) struct Peeked<I: Iterator>{
+    h: Reverse<I::Item>,
+    t: I,
+}
+
+impl<I: Iterator> Peeked<I> {
+    fn new(mut i: I) -> Option<Peeked<I>> {
+        i.next().map(|x| Peeked { h: Reverse(x), t: i })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (lo, hi) = self.t.size_hint();
+        (lo + 1, hi.map(|hi| hi + 1))
+    }
+}
+
+// Delegate comparisons to the head element.
+impl<I: Iterator> PartialEq for Peeked<I> where I::Item: PartialEq {
+    fn eq(&self, that: &Self) -> bool { self.h.eq(&that.h) }
+}
+
+impl<I: Iterator> Eq for Peeked<I> where I::Item: Eq {}
+
+impl<I: Iterator> PartialOrd for Peeked<I> where I::Item: PartialOrd {
+    fn partial_cmp(&self, that: &Self) -> Option<Ordering> {
+        self.h.partial_cmp(&that.h)
+    }
+}
+
+impl<I: Iterator> Ord for Peeked<I> where I::Item: Ord {
+    fn cmp(&self, that: &Self) -> std::cmp::Ordering { self.h.cmp(&that.h) }
+}
+
+impl<I: Iterator + Clone> Clone for Peeked<I> where I::Item: Clone {
+    fn clone(&self) -> Self { Self { h: self.h.clone(), t: self.t.clone() } }
+}
+
+pub struct MultiwayUnion<I: Iterator> {
+    pub(crate) bh: BinaryHeap<Peeked<I>>,
+}
+
+impl<I: Iterator> MultiwayUnion<I> where I::Item: Ord {
+    pub(crate) fn from_iter<T: IntoIterator<Item = I>>(x: T)
+            -> MultiwayUnion<I> {
+        MultiwayUnion { bh: x.into_iter().filter_map(Peeked::new).collect() }
+    }
+}
+
+impl<I: Iterator + Clone> Clone for MultiwayUnion<I> where I::Item: Clone {
+    fn clone(&self) -> Self { Self { bh: self.bh.clone() } }
+}
+
+impl<I: Iterator> Iterator for MultiwayUnion<I> where I::Item: Ord {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Extract the current minimum element.
+        self.bh.pop().map(|Peeked { h: cur, t: tail }| {
+            // Collect elements equivalent to the current element.
+            // This is done as a two-step process so we don't remove
+            // duplicate elements from any of the input iterators.
+            let mut eqs = Vec::new();
+            let mut add_eq = |i| Peeked::new(i).map(|e| eqs.push(e));
+            add_eq(tail);
+            while let Some(item) = self.bh.peek() {
+                if item.h != cur {
+                    break;
+                } else {
+                    let Peeked { t, .. } = self.bh.pop().unwrap();
+                    add_eq(t);
+                }
+            }
+            // Re-insert iterators originally containing equivalent elements.
+            self.bh.extend(eqs.drain(..));
+            // Return the current minimum, removing the Reverse wrapper.
+            cur.0
+        })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.bh.iter().fold((0, Some(0)), |(lo, hi), it| {
+            let (ilo, ihi) = it.size_hint();
+            (max(lo, ilo), hi.and_then(|hi| ihi.map(|ihi| hi + ihi)))
+        })
     }
 }
 
@@ -265,6 +354,7 @@ impl<I: Iterator, J: Iterator> SortedByItem for Union<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Intersection<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for Difference<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for SymmetricDifference<I, J> {}
+impl<I: Iterator> SortedByItem for MultiwayUnion<I> {}
 
 #[cfg(test)]
 mod tests {
@@ -302,6 +392,18 @@ mod tests {
         let expected: Reference = a.union(&b).cloned().collect();
         let actual: Reference = a.clone().into_iter().union(b.clone().into_iter()).collect();
         binary_op(a, b, expected, actual)
+    }
+
+    #[quickcheck]
+    fn unions(inputs: Vec<Reference>) -> bool {
+        let expected: Reference = inputs.iter().flatten().copied().collect();
+        let actual = MultiwayUnion::from_iter(inputs.iter().map(|i| i.iter()));
+        let res = actual.clone().eq(expected.iter());
+        if !res {
+            let actual: Reference = actual.copied().collect();
+            println!("in:{:?} expected:{:?} out:{:?}", inputs, expected, actual);
+        }
+        res
     }
 
     #[quickcheck]
@@ -360,5 +462,7 @@ mod tests {
         is_s(s().intersection(s()));
         is_s(s().difference(s()));
         is_s(s().symmetric_difference(s()));
+        is_s(multiway_union(vec![s(), s(), s()]));
+        is_s(multiway_union(std::iter::once(s())));
     }
 }

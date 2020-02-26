@@ -161,6 +161,42 @@ pub trait SortedIterator: Iterator + Sized {
 
 impl<I> SortedIterator for I where I: Iterator + SortedByItem {}
 
+/// Union of multiple sorted iterators.
+///
+/// An advantage of this function over multiple calls to `SortedIterator::union`
+/// is that the number of merged sequences does not need to be known at the
+/// compile time. The drawback lies in the fact that all iterators have to be
+/// of the same type.
+///
+/// The algorithmic complexity of fully consuming the resulting iterator is
+/// *O(N log(K))* where *N* is the total number of items that the input iterators
+/// yield and *K* is the number of input iterators.
+///
+/// # Examples
+///
+/// ```
+/// # extern crate maplit;
+/// # use maplit::*;
+/// # extern crate sorted_iter;
+/// # use std::collections::BTreeSet;
+/// use sorted_iter::multiway_union;
+///
+/// let sequences = vec![
+///     btreeset! { 0, 5, 10, 15, 20, 25 }.into_iter(),
+///     btreeset! { 0, 1, 4, 9, 16, 25, 36 }.into_iter(),
+///     btreeset! { 4, 7, 11, 15, 18 }.into_iter(),
+/// ];
+///
+/// assert_eq!(
+///     multiway_union(sequences).collect::<BTreeSet<u64>>(),
+///     btreeset! { 0, 1, 4, 5, 7, 9, 10, 11, 15, 16, 18, 20, 25, 36 }
+/// );
+/// ```
+pub fn multiway_union<T, I>(iters: T) -> MultiwayUnion<I>
+where I: SortedIterator, T: IntoIterator<Item = I>, I::Item: Ord {
+    MultiwayUnion::from_iter(iters)
+}
+
 /// relational operations for iterators of pairs where the items are sorted according to the key
 pub trait SortedPairIterator<K, V>: Iterator + Sized {
 
