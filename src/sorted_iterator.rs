@@ -113,25 +113,15 @@ impl<I: Iterator> Iterator for MultiwayUnion<I> where I::Item: Ord {
 
     fn next(&mut self) -> Option<Self::Item> {
         // Extract the current minimum element.
-        self.bh.pop().map(|Peeked { h: cur, t: tail }| {
-            // Collect elements equivalent to the current element.
-            // This is done as a two-step process so we don't remove
-            // duplicate elements from any of the input iterators.
-            let mut eqs = Vec::new();
-            let mut add_eq = |i| Peeked::new(i).map(|e| eqs.push(e));
-            add_eq(tail);
-            while let Some(item) = self.bh.peek() {
-                if item.h != cur {
-                    break;
-                } else {
-                    let Peeked { t, .. } = self.bh.pop().unwrap();
-                    add_eq(t);
-                }
+        self.bh.pop().map(|Peeked { h: Reverse(item), t: top_tail }| {
+            // Advance the iterator and re-insert it into the heap.
+            Peeked::new(top_tail).map(|i| self.bh.push(i));
+            // Remove equivalent elements and advance corresponding iterators.
+            while self.bh.peek().filter(|x| x.h.0 == item).is_some() {
+                let tail = self.bh.pop().unwrap().t;
+                Peeked::new(tail).map(|i| self.bh.push(i));
             }
-            // Re-insert iterators originally containing equivalent elements.
-            self.bh.extend(eqs.drain(..));
-            // Return the current minimum, removing the Reverse wrapper.
-            cur.0
+            item
         })
     }
 
@@ -395,7 +385,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn unions(inputs: Vec<Reference>) -> bool {
+    fn multi_union(inputs: Vec<Reference>) -> bool {
         let expected: Reference = inputs.iter().flatten().copied().collect();
         let actual = MultiwayUnion::from_iter(inputs.iter().map(|i| i.iter()));
         let res = actual.clone().eq(expected.iter());
