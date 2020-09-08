@@ -1,8 +1,10 @@
 //! implementation of the sorted_iterator set operations
 use super::*;
-use std::iter::Peekable;
-use std::cmp::{max, min, Ordering, Reverse};
-use std::cmp::Ordering::*;
+use core::cmp::Ordering::*;
+use core::cmp::{max, min, Ordering, Reverse};
+use core::iter::Peekable;
+use core::{iter, ops};
+use std::collections;
 use std::collections::BinaryHeap;
 
 /// marker trait for iterators that are sorted by their Item
@@ -56,14 +58,17 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Union<I,
 }
 
 // An iterator with the first item pulled out.
-pub(crate) struct Peeked<I: Iterator>{
+pub(crate) struct Peeked<I: Iterator> {
     h: Reverse<I::Item>,
     t: I,
 }
 
 impl<I: Iterator> Peeked<I> {
     fn new(mut i: I) -> Option<Peeked<I>> {
-        i.next().map(|x| Peeked { h: Reverse(x), t: i })
+        i.next().map(|x| Peeked {
+            h: Reverse(x),
+            t: i,
+        })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -73,56 +78,96 @@ impl<I: Iterator> Peeked<I> {
 }
 
 // Delegate comparisons to the head element.
-impl<I: Iterator> PartialEq for Peeked<I> where I::Item: PartialEq {
-    fn eq(&self, that: &Self) -> bool { self.h.eq(&that.h) }
+impl<I: Iterator> PartialEq for Peeked<I>
+where
+    I::Item: PartialEq,
+{
+    fn eq(&self, that: &Self) -> bool {
+        self.h.eq(&that.h)
+    }
 }
 
 impl<I: Iterator> Eq for Peeked<I> where I::Item: Eq {}
 
-impl<I: Iterator> PartialOrd for Peeked<I> where I::Item: PartialOrd {
+impl<I: Iterator> PartialOrd for Peeked<I>
+where
+    I::Item: PartialOrd,
+{
     fn partial_cmp(&self, that: &Self) -> Option<Ordering> {
         self.h.partial_cmp(&that.h)
     }
 }
 
-impl<I: Iterator> Ord for Peeked<I> where I::Item: Ord {
-    fn cmp(&self, that: &Self) -> std::cmp::Ordering { self.h.cmp(&that.h) }
+impl<I: Iterator> Ord for Peeked<I>
+where
+    I::Item: Ord,
+{
+    fn cmp(&self, that: &Self) -> core::cmp::Ordering {
+        self.h.cmp(&that.h)
+    }
 }
 
-impl<I: Iterator + Clone> Clone for Peeked<I> where I::Item: Clone {
-    fn clone(&self) -> Self { Self { h: self.h.clone(), t: self.t.clone() } }
+impl<I: Iterator + Clone> Clone for Peeked<I>
+where
+    I::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            h: self.h.clone(),
+            t: self.t.clone(),
+        }
+    }
 }
 
 pub struct MultiwayUnion<I: Iterator> {
     pub(crate) bh: BinaryHeap<Peeked<I>>,
 }
 
-impl<I: Iterator> MultiwayUnion<I> where I::Item: Ord {
-    pub(crate) fn from_iter<T: IntoIterator<Item = I>>(x: T)
-            -> MultiwayUnion<I> {
-        MultiwayUnion { bh: x.into_iter().filter_map(Peeked::new).collect() }
+impl<I: Iterator> MultiwayUnion<I>
+where
+    I::Item: Ord,
+{
+    pub(crate) fn from_iter<T: IntoIterator<Item = I>>(x: T) -> MultiwayUnion<I> {
+        MultiwayUnion {
+            bh: x.into_iter().filter_map(Peeked::new).collect(),
+        }
     }
 }
 
-impl<I: Iterator + Clone> Clone for MultiwayUnion<I> where I::Item: Clone {
-    fn clone(&self) -> Self { Self { bh: self.bh.clone() } }
+impl<I: Iterator + Clone> Clone for MultiwayUnion<I>
+where
+    I::Item: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            bh: self.bh.clone(),
+        }
+    }
 }
 
-impl<I: Iterator> Iterator for MultiwayUnion<I> where I::Item: Ord {
+impl<I: Iterator> Iterator for MultiwayUnion<I>
+where
+    I::Item: Ord,
+{
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Extract the current minimum element.
-        self.bh.pop().map(|Peeked { h: Reverse(item), t: top_tail }| {
-            // Advance the iterator and re-insert it into the heap.
-            Peeked::new(top_tail).map(|i| self.bh.push(i));
-            // Remove equivalent elements and advance corresponding iterators.
-            while self.bh.peek().filter(|x| x.h.0 == item).is_some() {
-                let tail = self.bh.pop().unwrap().t;
-                Peeked::new(tail).map(|i| self.bh.push(i));
-            }
-            item
-        })
+        self.bh.pop().map(
+            |Peeked {
+                 h: Reverse(item),
+                 t: top_tail,
+             }| {
+                // Advance the iterator and re-insert it into the heap.
+                Peeked::new(top_tail).map(|i| self.bh.push(i));
+                // Remove equivalent elements and advance corresponding iterators.
+                while self.bh.peek().filter(|x| x.h.0 == item).is_some() {
+                    let tail = self.bh.pop().unwrap().t;
+                    Peeked::new(tail).map(|i| self.bh.push(i));
+                }
+                item
+            },
+        )
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -310,33 +355,33 @@ impl<I: Iterator> Iterator for AssumeSortedByItem<I> {
 }
 
 // mark common std traits
-impl<I> SortedByItem for std::iter::Empty<I> {}
-impl<I> SortedByItem for std::iter::Once<I> {}
-impl<I: SortedByItem> SortedByItem for std::iter::Take<I> {}
-impl<I: SortedByItem> SortedByItem for std::iter::Skip<I> {}
-impl<I: SortedByItem> SortedByItem for std::iter::StepBy<I> {}
-impl<I: SortedByItem> SortedByItem for std::iter::Cloned<I> {}
-impl<I: SortedByItem> SortedByItem for std::iter::Copied<I> {}
-impl<I: SortedByItem> SortedByItem for std::iter::Fuse<I> {}
-impl<I: SortedByItem, F> SortedByItem for std::iter::Inspect<I, F> {}
-impl<I: SortedByItem, P> SortedByItem for std::iter::TakeWhile<I, P> {}
-impl<I: SortedByItem, P> SortedByItem for std::iter::SkipWhile<I, P> {}
-impl<I: SortedByItem, P> SortedByItem for std::iter::Filter<I, P> {}
-impl<I: SortedByItem + Iterator> SortedByItem for std::iter::Peekable<I> {}
+impl<I> SortedByItem for iter::Empty<I> {}
+impl<I> SortedByItem for iter::Once<I> {}
+impl<I: SortedByItem> SortedByItem for iter::Take<I> {}
+impl<I: SortedByItem> SortedByItem for iter::Skip<I> {}
+impl<I: SortedByItem> SortedByItem for iter::StepBy<I> {}
+impl<I: SortedByItem> SortedByItem for iter::Cloned<I> {}
+impl<I: SortedByItem> SortedByItem for iter::Copied<I> {}
+impl<I: SortedByItem> SortedByItem for iter::Fuse<I> {}
+impl<I: SortedByItem, F> SortedByItem for iter::Inspect<I, F> {}
+impl<I: SortedByItem, P> SortedByItem for iter::TakeWhile<I, P> {}
+impl<I: SortedByItem, P> SortedByItem for iter::SkipWhile<I, P> {}
+impl<I: SortedByItem, P> SortedByItem for iter::Filter<I, P> {}
+impl<I: SortedByItem + Iterator> SortedByItem for iter::Peekable<I> {}
 
-impl<T> SortedByItem for std::collections::btree_set::IntoIter<T> {}
-impl<'a, T> SortedByItem for std::collections::btree_set::Iter<'a, T> {}
-impl<'a, T> SortedByItem for std::collections::btree_set::Intersection<'a, T> {}
-impl<'a, T> SortedByItem for std::collections::btree_set::Union<'a, T> {}
-impl<'a, T> SortedByItem for std::collections::btree_set::Difference<'a, T> {}
-impl<'a, T> SortedByItem for std::collections::btree_set::SymmetricDifference<'a, T> {}
-impl<'a, T> SortedByItem for std::collections::btree_set::Range<'a, T> {}
+impl<T> SortedByItem for collections::btree_set::IntoIter<T> {}
+impl<'a, T> SortedByItem for collections::btree_set::Iter<'a, T> {}
+impl<'a, T> SortedByItem for collections::btree_set::Intersection<'a, T> {}
+impl<'a, T> SortedByItem for collections::btree_set::Union<'a, T> {}
+impl<'a, T> SortedByItem for collections::btree_set::Difference<'a, T> {}
+impl<'a, T> SortedByItem for collections::btree_set::SymmetricDifference<'a, T> {}
+impl<'a, T> SortedByItem for collections::btree_set::Range<'a, T> {}
 
-impl<'a, K, V> SortedByItem for std::collections::btree_map::Keys<'a, K, V> {}
+impl<'a, K, V> SortedByItem for collections::btree_map::Keys<'a, K, V> {}
 
-impl<T> SortedByItem for std::ops::Range<T> {}
-impl<T> SortedByItem for std::ops::RangeInclusive<T> {}
-impl<T> SortedByItem for std::ops::RangeFrom<T> {}
+impl<T> SortedByItem for ops::Range<T> {}
+impl<T> SortedByItem for ops::RangeInclusive<T> {}
+impl<T> SortedByItem for ops::RangeFrom<T> {}
 
 impl<I: Iterator> SortedByItem for Keys<I> {}
 impl<I: Iterator> SortedByItem for AssumeSortedByItem<I> {}
@@ -349,7 +394,7 @@ impl<I: Iterator> SortedByItem for MultiwayUnion<I> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fmt::Debug;
+    use core::fmt::Debug;
 
     /// just a helper to get good output when a check fails
     fn binary_op<E: Debug, R: Eq + Debug>(a: E, b: E, expected: R, actual: R) -> bool {
@@ -364,7 +409,7 @@ mod tests {
     }
 
     type Element = i64;
-    type Reference = std::collections::BTreeSet<Element>;
+    type Reference = collections::BTreeSet<Element>;
 
     #[quickcheck]
     fn intersection(a: Reference, b: Reference) -> bool {
@@ -419,17 +464,17 @@ mod tests {
     }
 
     fn s() -> impl Iterator<Item = i64> + SortedByItem {
-        (0i64..10)
+        0i64..10
     }
     fn r<'a>() -> impl Iterator<Item = &'a i64> + SortedByItem {
-        std::iter::empty()
+        iter::empty()
     }
     fn is_s<K, I: Iterator<Item = K> + SortedByItem>(_v: I) {}
 
     #[test]
     fn instances() {
-        is_s(std::iter::empty::<i64>());
-        is_s(std::iter::once(0u64));
+        is_s(iter::empty::<i64>());
+        is_s(iter::once(0u64));
         // ranges
         is_s(0i64..10);
         is_s(0i64..=10);
@@ -453,6 +498,6 @@ mod tests {
         is_s(s().difference(s()));
         is_s(s().symmetric_difference(s()));
         is_s(multiway_union(vec![s(), s(), s()]));
-        is_s(multiway_union(std::iter::once(s())));
+        is_s(multiway_union(iter::once(s())));
     }
 }

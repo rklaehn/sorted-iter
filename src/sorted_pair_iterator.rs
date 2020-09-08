@@ -1,10 +1,14 @@
 //! implementation of the sorted_pair_iterator relational operations
 use super::*;
-use std::iter::Peekable;
-use std::cmp::{max, min};
-use std::cmp::Ordering::*;
-use std::fmt::Debug;
 use crate::sorted_iterator::SortedByItem;
+use core::{
+    cmp::Ordering::*,
+    cmp::{max, min},
+    fmt::Debug,
+    iter,
+    iter::Peekable,
+};
+use std::collections;
 
 /// marker trait for iterators that are sorted by the key of their Item
 pub trait SortedByKey {}
@@ -326,26 +330,26 @@ impl<I: Iterator> Iterator for AssumeSortedByKey<I> {
 // are sorted by item, but not strictly sorted by key!
 
 // mark common std traits
-impl<I> SortedByKey for std::iter::Empty<I> {}
-impl<I> SortedByKey for std::iter::Once<I> {}
-impl<I> SortedByKey for std::iter::Enumerate<I> {}
+impl<I> SortedByKey for iter::Empty<I> {}
+impl<I> SortedByKey for iter::Once<I> {}
+impl<I> SortedByKey for iter::Enumerate<I> {}
 
 impl<I: Iterator + SortedByItem> SortedByKey for Pairs<I> {}
 impl<I: Iterator, F> SortedByKey for MapValues<I, F> {}
 impl<I: Iterator, F> SortedByKey for FilterMapValues<I, F> {}
 
-impl<I: SortedByKey> SortedByKey for std::iter::Take<I> {}
-impl<I: SortedByKey> SortedByKey for std::iter::Skip<I> {}
-impl<I: SortedByKey> SortedByKey for std::iter::StepBy<I> {}
-impl<I: SortedByKey> SortedByKey for std::iter::Cloned<I> {}
-impl<I: SortedByKey> SortedByKey for std::iter::Copied<I> {}
-impl<I: SortedByKey> SortedByKey for std::iter::Fuse<I> {}
-impl<I: SortedByKey, F> SortedByKey for std::iter::Inspect<I, F> {}
-impl<I: SortedByKey, P> SortedByKey for std::iter::TakeWhile<I, P> {}
-impl<I: SortedByKey, P> SortedByKey for std::iter::SkipWhile<I, P> {}
-impl<I: SortedByKey, P> SortedByKey for std::iter::Filter<I, P> {}
-impl<I: SortedByKey + Iterator> SortedByKey for std::iter::Peekable<I> {}
-impl<I: SortedByItem, J> SortedByKey for std::iter::Zip<I, J> {}
+impl<I: SortedByKey> SortedByKey for iter::Take<I> {}
+impl<I: SortedByKey> SortedByKey for iter::Skip<I> {}
+impl<I: SortedByKey> SortedByKey for iter::StepBy<I> {}
+impl<I: SortedByKey> SortedByKey for iter::Cloned<I> {}
+impl<I: SortedByKey> SortedByKey for iter::Copied<I> {}
+impl<I: SortedByKey> SortedByKey for iter::Fuse<I> {}
+impl<I: SortedByKey, F> SortedByKey for iter::Inspect<I, F> {}
+impl<I: SortedByKey, P> SortedByKey for iter::TakeWhile<I, P> {}
+impl<I: SortedByKey, P> SortedByKey for iter::SkipWhile<I, P> {}
+impl<I: SortedByKey, P> SortedByKey for iter::Filter<I, P> {}
+impl<I: SortedByKey + Iterator> SortedByKey for iter::Peekable<I> {}
+impl<I: SortedByItem, J> SortedByKey for iter::Zip<I, J> {}
 
 impl<I: Iterator, J: Iterator> SortedByKey for Join<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for LeftJoin<I, J> {}
@@ -353,19 +357,19 @@ impl<I: Iterator, J: Iterator> SortedByKey for RightJoin<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByKey for OuterJoin<I, J> {}
 impl<I: Iterator> SortedByKey for AssumeSortedByKey<I> {}
 
-impl<K, V> SortedByKey for std::collections::btree_map::IntoIter<K, V> {}
-impl<'a, K, V> SortedByKey for std::collections::btree_map::Iter<'a, K, V> {}
-impl<'a, K, V> SortedByKey for std::collections::btree_map::IterMut<'a, K, V> {}
-impl<'a, K, V> SortedByKey for std::collections::btree_map::Range<'a, K, V> {}
-impl<'a, K, V> SortedByKey for std::collections::btree_map::RangeMut<'a, K, V> {}
+impl<K, V> SortedByKey for collections::btree_map::IntoIter<K, V> {}
+impl<'a, K, V> SortedByKey for collections::btree_map::Iter<'a, K, V> {}
+impl<'a, K, V> SortedByKey for collections::btree_map::IterMut<'a, K, V> {}
+impl<'a, K, V> SortedByKey for collections::btree_map::Range<'a, K, V> {}
+impl<'a, K, V> SortedByKey for collections::btree_map::RangeMut<'a, K, V> {}
 
 #[cfg(test)]
 mod tests {
     extern crate maplit;
     use super::*;
+    use collections::BTreeMap;
+    use core::fmt::Debug;
     use maplit::*;
-    use std::collections::BTreeMap;
-    use std::fmt::Debug;
 
     /// just a helper to get good output when a check fails
     fn unary_op<E: Debug, R: Eq + Debug>(x: E, expected: R, actual: R) -> bool {
@@ -482,8 +486,8 @@ mod tests {
     #[test]
     fn instances() {
         // creation
-        is_s(std::iter::empty::<(i64, ())>());
-        is_s(std::iter::once((0, ())));
+        is_s(iter::empty::<(i64, ())>());
+        is_s(iter::once((0, ())));
         is_s([1, 2, 3, 4].iter().enumerate());
         // ranges
         is_s((0i64..10).pairs());

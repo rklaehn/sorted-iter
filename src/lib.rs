@@ -58,7 +58,7 @@
 //! from a third party library where you *know* that it is properly sorted.
 //!
 //! For this case, there is an escape hatch:
-//! 
+//!
 //! ```
 //! // the assume_ extensions have to be implicitly imported
 //! use sorted_iter::*;
@@ -66,17 +66,17 @@
 //! let odd = vec![1,3,5,7u8].into_iter().assume_sorted_by_item();
 //! let even = vec![2,4,6,8u8].into_iter().assume_sorted_by_item();
 //! let all = odd.union(even);
-//! 
+//!
 //! let cities = vec![(1u8, "New York")].into_iter().assume_sorted_by_key();
 //! let countries = vec![(1u8, "USA")].into_iter().assume_sorted_by_key();
 //! let cities_and_countries = cities.join(countries);
 //! ```
-//! 
+//!
 //! # Marking your own iterators
-//! 
+//!
 //! If you have a library and want to mark some iterators as sorted, this is possible by implementing the
 //! appropriate marker trait, [SortedByItem](trait.SortedByItem.html) or [SortedByKey](trait.SortedByKey.html).
-//! 
+//!
 //! ```
 //! # extern crate sorted_iter;
 //! // marker traits are not at top level, since usually you don't need them
@@ -85,13 +85,13 @@
 //!
 //! pub struct MySortedIter<T> { whatever: T }
 //! pub struct MySortedPairIter<K, V> { whatever: (K, V) }
-//! 
+//!
 //! impl<T> SortedByItem for MySortedIter<T> {}
 //! impl<K, V> SortedByKey for MySortedPairIter<K, V> {}
 //! ```
-//! 
+//!
 //! By reexporting the extension traits, you get a seamless experience for people using your library.
-//! 
+//!
 //! ```
 //! extern crate sorted_iter;
 //! pub use sorted_iter::{SortedIterator, SortedPairIterator};
@@ -193,13 +193,16 @@ impl<I> SortedIterator for I where I: Iterator + SortedByItem {}
 /// );
 /// ```
 pub fn multiway_union<T, I>(iters: T) -> MultiwayUnion<I>
-where I: SortedIterator, T: IntoIterator<Item = I>, I::Item: Ord {
+where
+    I: SortedIterator,
+    T: IntoIterator<Item = I>,
+    I::Item: Ord,
+{
     MultiwayUnion::from_iter(iters)
 }
 
 /// relational operations for iterators of pairs where the items are sorted according to the key
 pub trait SortedPairIterator<K, V>: Iterator + Sized {
-
     fn join<W, J: SortedPairIterator<K, W>>(self, that: J) -> Join<Self, J> {
         Join {
             a: self.peekable(),
@@ -241,14 +244,14 @@ pub trait SortedPairIterator<K, V>: Iterator + Sized {
     }
 }
 
-impl<K, V, I> SortedPairIterator<K, V> for I where I: Iterator<Item=(K, V)> + SortedByKey {}
+impl<K, V, I> SortedPairIterator<K, V> for I where I: Iterator<Item = (K, V)> + SortedByKey {}
 
 pub mod assume {
     //! extension traits for unchecked conversions from iterators to sorted iterators
     use super::*;
 
     /// extension trait for any iterator to add a assume_sorted_by_item method
-    pub trait AssumeSortedByItemExt : Iterator + Sized {
+    pub trait AssumeSortedByItemExt: Iterator + Sized {
         /// assume that the iterator is sorted by its item order
         fn assume_sorted_by_item(self) -> AssumeSortedByItem<Self> {
             AssumeSortedByItem { i: self }
@@ -258,11 +261,11 @@ pub mod assume {
     impl<I: Iterator + Sized> AssumeSortedByItemExt for I {}
 
     /// extension trait for any iterator of pairs to add a assume_sorted_by_key method
-    pub trait AssumeSortedByKeyExt : Iterator + Sized {
+    pub trait AssumeSortedByKeyExt: Iterator + Sized {
         fn assume_sorted_by_key(self) -> AssumeSortedByKey<Self> {
             AssumeSortedByKey { i: self }
         }
     }
 
-    impl<K, V, I: Iterator<Item=(K, V)> + Sized> AssumeSortedByKeyExt for I {}
+    impl<K, V, I: Iterator<Item = (K, V)> + Sized> AssumeSortedByKeyExt for I {}
 }
