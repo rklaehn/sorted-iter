@@ -1,6 +1,6 @@
 [package]
 name = "sorted-iter"
-version = "0.1.5"
+version = "0.1.7"
 authors = ["Rüdiger Klaehn <rklaehn@protonmail.com>"]
 description = "Typesafe extensions for sorted iterators, including set and relational operations"
 repository = "https://github.com/rklaehn/sorted-iter"
@@ -13,6 +13,6 @@ homepage = "https://github.com/rklaehn"
 [dependencies]
 
 [dev-dependencies]
-quickcheck = "0.9.0"
-quickcheck_macros = "0.8.0"
-maplit = "1.0.2"
+quickcheck = "0.9"
+quickcheck_macros = "0.8"
+maplit = "1.0"
