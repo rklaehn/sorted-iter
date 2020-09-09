@@ -13,8 +13,18 @@
 //! let fib_primes = primes.intersection(fibs);
 //! ```
 //!
-//! For available set operations, see [SortedIterator](trait.SortedIterator.html).
-//! For sorted iterators in the std lib, see instances the for [SortedByItem](trait.SortedByItem.html) marker trait.
+//! It is possible to efficiently define set operations on sorted iterators. Sorted iterators are
+//! very common in the standard library. E.g. the elements of a [BTreeSet] or the keys of a [BTreeMap]
+//! are guaranteed to be sorted according to the element order, as are iterable ranges like `0..100`.
+//!
+//! There are also a number of operations on iterators that preserve the sort order. E.g. if an
+//! iterator is sorted, [take], [take_while] etc. are going to result in a sorted iterator as well.
+//!
+//! Since the complete types of iterators are typically visible in rust, it is possible to encode these
+//! rules at type level. This is what this crate does.
+//!
+//! For available set operations, see [SortedIterator].
+//! For sorted iterators in the std lib, see instances the for [SortedByItem] marker trait.
 //!
 //! # Relational operations
 //! ```
@@ -23,13 +33,32 @@
 //! # extern crate sorted_iter;
 //! use sorted_iter::SortedPairIterator;
 //!
-//! let cities = btreemap! { 1 => "New York", 2 => "Tokyo", 3u8 => "Berlin" }.into_iter();
-//! let countries = btreemap! { 1 => "USA", 2 => "Japan", 3u8 => "Germany" }.into_iter();
+//! let cities = btreemap! {
+//!   1 => "New York",
+//!   2 => "Tokyo",
+//!   3u8 => "Berlin"
+//! }.into_iter();
+//! let countries = btreemap! {
+//!   1 => "USA",
+//!   2 => "Japan",
+//!   3u8 => "Germany"
+//! }.into_iter();
 //! let cities_and_countries = cities.join(countries);
 //! ```
 //!
-//! For available relational operations, see [SortedPairIterator](trait.SortedPairIterator.html).
-//! For sorted iterators in the std lib, see instances the for [SortedByKey](trait.SortedByKey.html) marker trait.
+//! Iterators of pairs that are sorted according to the first element / key are also very common in
+//! the standard library and elsewhere. E.g. the elements of a [BTreeMap] are guaranteed to be sorted
+//! according to the key order.
+//!
+//! The same rules as for sorted iterators apply for preservation of the sort order, except that there
+//! are some additional operations that preserve sort order. Anything that only operates on the value,
+//! like e.g. map or filter_map on the value, is guaranteed to preserve the sort order.
+//!
+//! The operations that can be defined on sorted pair operations are the relational operations known
+//! from relational algebra / SQL, namely join, left_join, right_join and outer_join.
+//!
+//! For available relational operations, see [SortedPairIterator].
+//! For sorted iterators in the std lib, see instances the for [SortedByKey] marker trait.
 //!
 //! # Transformations that retain order are allowed
 //! ```
@@ -75,7 +104,7 @@
 //! # Marking your own iterators
 //!
 //! If you have a library and want to mark some iterators as sorted, this is possible by implementing the
-//! appropriate marker trait, [SortedByItem](trait.SortedByItem.html) or [SortedByKey](trait.SortedByKey.html).
+//! appropriate marker trait, [SortedByItem] or [SortedByKey].
 //!
 //! ```
 //! # extern crate sorted_iter;
@@ -96,6 +125,22 @@
 //! extern crate sorted_iter;
 //! pub use sorted_iter::{SortedIterator, SortedPairIterator};
 //! ```
+//!
+//! ## Tests
+//!
+//! Tests are done using the fantastic [quickcheck] crate, by comparing against the operations defined on
+//! [BTreeSet] and [BTreeMap].
+//!
+//! [SortedIterator]: trait.SortedIterator.html
+//! [SortedPairIterator]: trait.SortedPairIterator.html
+//! [SortedByItem]: sorted_iterator/trait.SortedByItem.html
+//! [SortedByKey]: sorted_pair_iterator/trait.SortedByKey.html
+//! [quickcheck]: https://github.com/BurntSushi/quickcheck
+//! [BTreeSet]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+//! [BTreeMap]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+//! [take]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.take
+//! [take_while]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.take_while
+//! [Ord]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
 #[cfg(test)]
 extern crate quickcheck;
 
