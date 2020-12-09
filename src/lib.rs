@@ -179,7 +179,7 @@ pub trait SortedIterator: Iterator + Sized {
         J: SortedIterator<Item = Self::Item>,
     {
         Intersection {
-            a: self.peekable(),
+            a: self,
             b: other.peekable(),
         }
     }
@@ -191,7 +191,7 @@ pub trait SortedIterator: Iterator + Sized {
         J: SortedIterator<Item = Self::Item>,
     {
         Difference {
-            a: self.peekable(),
+            a: self,
             b: other.peekable(),
         }
     }
