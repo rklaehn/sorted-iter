@@ -52,7 +52,7 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Union<I,
         // full overlap
         let rmin = max(amin, bmin);
         // no overlap
-        let rmax = amax.and_then(|amax| bmax.map(|bmax| amax + bmax));
+        let rmax = amax.and_then(|amax| bmax.and_then(|bmax| amax.checked_add(bmax)));
         (rmin, rmax)
     }
 }
@@ -173,7 +173,10 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.bh.iter().fold((0, Some(0)), |(lo, hi), it| {
             let (ilo, ihi) = it.size_hint();
-            (max(lo, ilo), hi.and_then(|hi| ihi.map(|ihi| hi + ihi)))
+            (
+                max(lo, ilo),
+                hi.and_then(|hi| ihi.and_then(|ihi| hi.checked_add(ihi))),
+            )
         })
     }
 }
@@ -270,7 +273,7 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Differen
         // no overlap
         let rmax = amax;
         // if the other has at most bmax elements, and we have at least amin elements
-        let rmin = bmax.map(|bmax| amin.saturating_sub(bmax)).unwrap_or(0);
+        let rmin = bmax.map_or(0, |bmax| amin.saturating_sub(bmax));
         (rmin, rmax)
     }
 }
@@ -310,9 +313,19 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Symmetri
         self.a.next().or_else(|| self.b.next())
     }
 
-    // TODO!
-    // fn size_hint(&self) -> (usize, Option<usize>) {
-    // }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (amin, amax) = self.a.size_hint();
+        let (bmin, bmax) = self.b.size_hint();
+        // full overlap
+        let rmin = match (amax, bmax) {
+            (Some(amax), _) if bmin >= amax => bmin - amax,
+            (_, Some(bmax)) if amin >= bmax => amin - bmax,
+            _ => 0,
+        };
+        // no overlap
+        let rmax = amax.and_then(|amax| bmax.and_then(|bmax| amax.checked_add(bmax)));
+        (rmin, rmax)
+    }
 }
 
 #[derive(Clone, Debug)]
