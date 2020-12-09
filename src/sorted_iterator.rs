@@ -458,6 +458,57 @@ mod tests {
         binary_op(a, b, expected, actual)
     }
 
+    /// just a helper to get good output when a check fails
+    fn check_size_hint<E: Debug>(
+        input: E,
+        expected: usize,
+        (min, max): (usize, Option<usize>),
+    ) -> bool {
+        let res = min <= expected && max.map_or(true, |max| expected <= max && min <= max);
+        if !res {
+            println!(
+                "input:{:?} expected:{:?} min:{:?} max:{:?}",
+                input, expected, min, max
+            );
+        }
+        res
+    }
+
+    #[quickcheck]
+    fn intersection_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.intersection(&b).count();
+        let actual = a.iter().intersection(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
+    }
+
+    #[quickcheck]
+    fn union_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.union(&b).count();
+        let actual = a.iter().union(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
+    }
+
+    #[quickcheck]
+    fn multi_union_size_hint(inputs: Vec<Reference>) -> bool {
+        let expected: Reference = inputs.iter().flatten().copied().collect();
+        let actual = MultiwayUnion::from_iter(inputs.iter().map(|i| i.iter())).size_hint();
+        check_size_hint(inputs, expected.len(), actual)
+    }
+
+    #[quickcheck]
+    fn difference_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.difference(&b).count();
+        let actual = a.iter().difference(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
+    }
+
+    #[quickcheck]
+    fn symmetric_difference_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.symmetric_difference(&b).count();
+        let actual = a.iter().symmetric_difference(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
+    }
+
     fn s() -> impl Iterator<Item = i64> + SortedByItem {
         0i64..10
     }
