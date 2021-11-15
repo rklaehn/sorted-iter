@@ -52,7 +52,7 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Union<I,
         // full overlap
         let rmin = max(amin, bmin);
         // no overlap
-        let rmax = amax.and_then(|amax| bmax.map(|bmax| amax + bmax));
+        let rmax = amax.and_then(|amax| bmax.and_then(|bmax| amax.checked_add(bmax)));
         (rmin, rmax)
     }
 }
@@ -173,13 +173,16 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.bh.iter().fold((0, Some(0)), |(lo, hi), it| {
             let (ilo, ihi) = it.size_hint();
-            (max(lo, ilo), hi.and_then(|hi| ihi.map(|ihi| hi + ihi)))
+            (
+                max(lo, ilo),
+                hi.and_then(|hi| ihi.and_then(|ihi| hi.checked_add(ihi))),
+            )
         })
     }
 }
 
 pub struct Intersection<I: Iterator, J: Iterator> {
-    pub(crate) a: Peekable<I>,
+    pub(crate) a: I,
     pub(crate) b: Peekable<J>,
 }
 
@@ -200,17 +203,15 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Intersec
     type Item = K;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let (Some(a), Some(b)) = (self.a.peek(), self.b.peek()) {
-            match a.cmp(&b) {
-                Less => {
-                    self.a.next();
+        while let Some(a) = self.a.next() {
+            while let Some(b) = self.b.peek() {
+                let order = a.cmp(b);
+                if order == Less {
+                    break;
                 }
-                Greater => {
-                    self.b.next();
-                }
-                Equal => {
-                    self.b.next();
-                    return self.a.next();
+                self.b.next();
+                if order == Equal {
+                    return Some(a);
                 }
             }
         }
@@ -229,7 +230,7 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Intersec
 }
 
 pub struct Difference<I: Iterator, J: Iterator> {
-    pub(crate) a: Peekable<I>,
+    pub(crate) a: I,
     pub(crate) b: Peekable<J>,
 }
 
@@ -250,23 +251,20 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Differen
     type Item = K;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(b) = self.b.peek() {
-            // if we have no more a, return none
-            let a = self.a.peek()?;
-            match a.cmp(b) {
-                Less => {
+        'next_a: while let Some(a) = self.a.next() {
+            while let Some(b) = self.b.peek() {
+                let order = a.cmp(b);
+                if order == Less {
                     break;
                 }
-                Greater => {
-                    self.b.next();
-                }
-                Equal => {
-                    self.a.next();
-                    self.b.next();
+                self.b.next();
+                if order == Equal {
+                    continue 'next_a;
                 }
             }
+            return Some(a);
         }
-        self.a.next()
+        None
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -275,7 +273,7 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Differen
         // no overlap
         let rmax = amax;
         // if the other has at most bmax elements, and we have at least amin elements
-        let rmin = bmax.map(|bmax| amin.saturating_sub(bmax)).unwrap_or(0);
+        let rmin = bmax.map_or(0, |bmax| amin.saturating_sub(bmax));
         (rmin, rmax)
     }
 }
@@ -315,9 +313,19 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Symmetri
         self.a.next().or_else(|| self.b.next())
     }
 
-    // TODO!
-    // fn size_hint(&self) -> (usize, Option<usize>) {
-    // }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (amin, amax) = self.a.size_hint();
+        let (bmin, bmax) = self.b.size_hint();
+        // full overlap
+        let rmin = match (amax, bmax) {
+            (Some(amax), _) if bmin >= amax => bmin - amax,
+            (_, Some(bmax)) if amin >= bmax => amin - bmax,
+            _ => 0,
+        };
+        // no overlap
+        let rmax = amax.and_then(|amax| bmax.and_then(|bmax| amax.checked_add(bmax)));
+        (rmin, rmax)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -461,6 +469,57 @@ mod tests {
             .symmetric_difference(b.clone().into_iter())
             .collect();
         binary_op(a, b, expected, actual)
+    }
+
+    /// just a helper to get good output when a check fails
+    fn check_size_hint<E: Debug>(
+        input: E,
+        expected: usize,
+        (min, max): (usize, Option<usize>),
+    ) -> bool {
+        let res = min <= expected && max.map_or(true, |max| expected <= max && min <= max);
+        if !res {
+            println!(
+                "input:{:?} expected:{:?} min:{:?} max:{:?}",
+                input, expected, min, max
+            );
+        }
+        res
+    }
+
+    #[quickcheck]
+    fn intersection_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.intersection(&b).count();
+        let actual = a.iter().intersection(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
+    }
+
+    #[quickcheck]
+    fn union_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.union(&b).count();
+        let actual = a.iter().union(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
+    }
+
+    #[quickcheck]
+    fn multi_union_size_hint(inputs: Vec<Reference>) -> bool {
+        let expected: Reference = inputs.iter().flatten().copied().collect();
+        let actual = MultiwayUnion::from_iter(inputs.iter().map(|i| i.iter())).size_hint();
+        check_size_hint(inputs, expected.len(), actual)
+    }
+
+    #[quickcheck]
+    fn difference_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.difference(&b).count();
+        let actual = a.iter().difference(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
+    }
+
+    #[quickcheck]
+    fn symmetric_difference_size_hint(a: Reference, b: Reference) -> bool {
+        let expected = a.symmetric_difference(&b).count();
+        let actual = a.iter().symmetric_difference(b.iter()).size_hint();
+        check_size_hint((a, b), expected, actual)
     }
 
     fn s() -> impl Iterator<Item = i64> + SortedByItem {

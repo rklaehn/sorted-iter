@@ -24,7 +24,7 @@
 //! rules at type level. This is what this crate does.
 //!
 //! For available set operations, see [SortedIterator].
-//! For sorted iterators in the std lib, see instances the for [SortedByItem] marker trait.
+//! For sorted iterators in the std lib, see instances for the [SortedByItem] marker trait.
 //!
 //! # Relational operations
 //! ```
@@ -148,6 +148,8 @@ extern crate quickcheck;
 #[macro_use(quickcheck)]
 extern crate quickcheck_macros;
 
+use core::cmp::Ordering;
+
 pub mod sorted_iterator;
 pub mod sorted_pair_iterator;
 
@@ -158,49 +160,109 @@ use crate::sorted_pair_iterator::*;
 
 /// set operations for iterators where the items are sorted according to the natural order
 pub trait SortedIterator: Iterator + Sized {
-    /// union with another sorted iterator
-    fn union<J>(self, that: J) -> Union<Self, J>
+    /// Visits the values representing the union, i.e., all the values in `self` or `other`,
+    /// without duplicates.
+    fn union<J>(self, other: J) -> Union<Self, J>
     where
         J: SortedIterator<Item = Self::Item>,
     {
         Union {
             a: self.peekable(),
-            b: that.peekable(),
+            b: other.peekable(),
         }
     }
-    /// intersection with another sorted iterator
-    fn intersection<J>(self, that: J) -> Intersection<Self, J>
+
+    /// Visits the values representing the intersection, i.e., the values that are both in `self`
+    /// and `other`.
+    fn intersection<J>(self, other: J) -> Intersection<Self, J>
     where
         J: SortedIterator<Item = Self::Item>,
     {
         Intersection {
-            a: self.peekable(),
-            b: that.peekable(),
+            a: self,
+            b: other.peekable(),
         }
     }
-    /// difference with another sorted iterator
-    fn difference<J>(self, that: J) -> Difference<Self, J>
+
+    /// Visits the values representing the difference, i.e., the values that are in `self` but not
+    /// in `other`.
+    fn difference<J>(self, other: J) -> Difference<Self, J>
     where
         J: SortedIterator<Item = Self::Item>,
     {
         Difference {
-            a: self.peekable(),
-            b: that.peekable(),
+            a: self,
+            b: other.peekable(),
         }
     }
-    /// symmetric difference with another sorted iterator
-    fn symmetric_difference<J>(self, that: J) -> SymmetricDifference<Self, J>
+
+    /// Visits the values representing the symmetric difference, i.e., the values that are in
+    /// `self` or in `other` but not in both.
+    fn symmetric_difference<J>(self, other: J) -> SymmetricDifference<Self, J>
     where
         J: SortedIterator<Item = Self::Item>,
     {
         SymmetricDifference {
             a: self.peekable(),
-            b: that.peekable(),
+            b: other.peekable(),
         }
     }
-    /// pairs with unit value
+
+    /// Creates an iterator that pairs each element of `self` with `()`. This transforms a
+    /// `SortedIterator` into a [`SortedPairIterator`].
     fn pairs(self) -> Pairs<Self> {
         Pairs { i: self }
+    }
+
+    /// Returns `true` if `self` has no elements in common with `other`. This is equivalent to
+    /// checking for an empty intersection.
+    fn is_disjoint<J>(self, mut other: J) -> bool
+    where
+        J: SortedIterator<Item = Self::Item>,
+        Self::Item: Ord,
+    {
+        let mut next_b = other.next();
+        'next_a: for a in self {
+            while let Some(b) = &next_b {
+                match a.cmp(b) {
+                    Ordering::Less => continue 'next_a,
+                    Ordering::Equal => return false,
+                    Ordering::Greater => next_b = other.next(),
+                }
+            }
+            break;
+        }
+        true
+    }
+
+    /// Returns `true` if this sorted iterator is a subset of another, i.e., `other` contains at
+    /// least all the values in `self`.
+    fn is_subset<J>(self, mut other: J) -> bool
+    where
+        J: SortedIterator<Item = Self::Item>,
+        Self::Item: Ord,
+    {
+        'next_a: for a in self {
+            while let Some(b) = other.next() {
+                match a.cmp(&b) {
+                    Ordering::Less => break,
+                    Ordering::Equal => continue 'next_a,
+                    Ordering::Greater => continue,
+                }
+            }
+            return false;
+        }
+        true
+    }
+
+    /// Returns `true` if this sorted iterator is a superset of another, i.e., `self` contains at
+    /// least all the values in `other`.
+    fn is_superset<J>(self, other: J) -> bool
+    where
+        J: SortedIterator<Item = Self::Item>,
+        Self::Item: Ord,
+    {
+        other.is_subset(self)
     }
 }
 
@@ -313,4 +375,27 @@ pub mod assume {
     }
 
     impl<K, V, I: Iterator<Item = (K, V)> + Sized> AssumeSortedByKeyExt for I {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type Element = i64;
+    type Reference = std::collections::BTreeSet<Element>;
+
+    #[quickcheck]
+    fn disjoint(a: Reference, b: Reference) -> bool {
+        a.is_disjoint(&b) == a.iter().is_disjoint(b.iter())
+    }
+
+    #[quickcheck]
+    fn subset(a: Reference, b: Reference) -> bool {
+        a.is_subset(&b) == a.iter().is_subset(b.iter())
+    }
+
+    #[quickcheck]
+    fn superset(a: Reference, b: Reference) -> bool {
+        a.is_superset(&b) == a.iter().is_superset(b.iter())
+    }
 }
