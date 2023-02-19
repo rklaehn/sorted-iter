@@ -6,6 +6,8 @@ use core::iter::Peekable;
 use core::{iter, ops};
 use std::collections;
 use std::collections::BinaryHeap;
+use std::rc::Rc;
+use std::sync::Arc;
 
 /// marker trait for iterators that are sorted by their Item
 pub trait SortedByItem {}
@@ -399,6 +401,8 @@ impl<I: Iterator, J: Iterator> SortedByItem for Difference<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for SymmetricDifference<I, J> {}
 impl<I: Iterator> SortedByItem for MultiwayUnion<I> {}
 
+impl<I: SortedByItem> SortedByItem for Box<I> {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -538,6 +542,8 @@ mod tests {
         is_s(0i64..10);
         is_s(0i64..=10);
         is_s(0i64..);
+        // wrappers
+        is_s(Box::new(0i64..10));
         // identity
         is_s(s().fuse());
         is_s(r().cloned());
