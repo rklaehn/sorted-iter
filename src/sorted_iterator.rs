@@ -399,6 +399,15 @@ impl<I: Iterator, J: Iterator> SortedByItem for Difference<I, J> {}
 impl<I: Iterator, J: Iterator> SortedByItem for SymmetricDifference<I, J> {}
 impl<I: Iterator> SortedByItem for MultiwayUnion<I> {}
 
+#[cfg(feature = "itertools")]
+mod itertools {
+    use super::*;
+    use itertools::{Merge, KMerge};
+
+    impl<A: SortedByItem, B: SortedByItem> SortedByItem for Merge<A, B> {}
+    impl<I: SortedByItem> SortedByItem for KMerge<I> {}
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

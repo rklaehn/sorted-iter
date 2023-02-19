@@ -11,6 +11,7 @@ edition = "2018"
 readme = "README.md"
 homepage = "https://github.com/rklaehn"
 [dependencies]
+itertools = { version = "0.10.5", optional = true }
 
 [dev-dependencies]
 quickcheck = "0.9"
