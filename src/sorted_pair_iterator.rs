@@ -363,6 +363,8 @@ impl<'a, K, V> SortedByKey for collections::btree_map::IterMut<'a, K, V> {}
 impl<'a, K, V> SortedByKey for collections::btree_map::Range<'a, K, V> {}
 impl<'a, K, V> SortedByKey for collections::btree_map::RangeMut<'a, K, V> {}
 
+impl<I: SortedByKey> SortedByKey for Box<I> {}
+
 #[cfg(test)]
 mod tests {
     extern crate maplit;
@@ -493,6 +495,8 @@ mod tests {
         is_s((0i64..10).pairs());
         is_s((0i64..=10).pairs());
         is_s((0i64..).pairs());
+        // wrappers
+        is_s(Box::new((0i64..).pairs()));
         // skip/take/step/filter
         is_s(s().step_by(1));
         is_s(s().take(1));
