@@ -6,8 +6,6 @@ use core::iter::Peekable;
 use core::{iter, ops};
 use std::collections;
 use std::collections::BinaryHeap;
-use std::rc::Rc;
-use std::sync::Arc;
 
 /// marker trait for iterators that are sorted by their Item
 pub trait SortedByItem {}
