@@ -6,6 +6,7 @@ use core::iter::Peekable;
 use core::{iter, ops};
 use std::collections;
 use std::collections::BinaryHeap;
+use std::iter::FusedIterator;
 
 /// marker trait for iterators that are sorted by their Item
 pub trait SortedByItem {}
@@ -359,6 +360,16 @@ impl<I: Iterator> Iterator for AssumeSortedByItem<I> {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.i.size_hint()
+    }
+}
+
+impl<I: Iterator> ExactSizeIterator for AssumeSortedByItem<I> where I: ExactSizeIterator {}
+
+impl<I: Iterator> FusedIterator for AssumeSortedByItem<I> where I: FusedIterator {}
+
+impl<I: Iterator> DoubleEndedIterator for AssumeSortedByItem<I> where I: DoubleEndedIterator {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.i.next_back()
     }
 }
 

@@ -8,7 +8,7 @@ use core::{
     iter,
     iter::Peekable,
 };
-use std::collections;
+use std::{collections, iter::FusedIterator};
 
 /// marker trait for iterators that are sorted by the key of their Item
 pub trait SortedByKey {}
@@ -322,6 +322,19 @@ impl<I: Iterator> Iterator for AssumeSortedByKey<I> {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.i.size_hint()
+    }
+}
+
+impl<I: Iterator> ExactSizeIterator for AssumeSortedByKey<I> where I: ExactSizeIterator {}
+
+impl<I: Iterator> FusedIterator for AssumeSortedByKey<I> where I: FusedIterator {}
+
+impl<I: Iterator> DoubleEndedIterator for AssumeSortedByKey<I>
+where
+    I: DoubleEndedIterator,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.i.next_back()
     }
 }
 
