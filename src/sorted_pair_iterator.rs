@@ -7,6 +7,7 @@ use core::{
     fmt::Debug,
     iter,
     iter::Peekable,
+    option, result,
 };
 use std::{collections, iter::FusedIterator};
 
@@ -345,6 +346,10 @@ where
 // mark common std traits
 impl<I> SortedByKey for iter::Empty<I> {}
 impl<I> SortedByKey for iter::Once<I> {}
+impl<'a, T> SortedByKey for option::Iter<'a, T> {}
+impl<'a, T> SortedByKey for result::Iter<'a, T> {}
+impl<T> SortedByKey for option::IntoIter<T> {}
+impl<T> SortedByKey for result::IntoIter<T> {}
 impl<I> SortedByKey for iter::Enumerate<I> {}
 
 impl<I: Iterator + SortedByItem> SortedByKey for Pairs<I> {}
@@ -377,6 +382,22 @@ impl<'a, K, V> SortedByKey for collections::btree_map::Range<'a, K, V> {}
 impl<'a, K, V> SortedByKey for collections::btree_map::RangeMut<'a, K, V> {}
 
 impl<I: SortedByKey> SortedByKey for Box<I> {}
+
+impl<I: Affine, F> SortedByKey for iter::Map<I, F> {}
+impl<Iin, J, Iout, F> SortedByKey for iter::FlatMap<Iin, J, F>
+where
+    Iin: Affine,
+    J: IntoIterator<IntoIter = Iout>,
+    Iout: SortedByKey,
+{
+}
+impl<Iin, J, Iout> SortedByKey for iter::Flatten<Iin>
+where
+    Iin: Affine + Iterator<Item = J>,
+    J: IntoIterator<IntoIter = Iout>,
+    Iout: SortedByKey,
+{
+}
 
 #[cfg(test)]
 mod tests {
@@ -532,5 +553,21 @@ mod tests {
         is_s(btreemap! { 0i64 => "" }.iter_mut());
         is_s(btreemap! { 0i64 => "" }.range(..));
         is_s(btreemap! { 0i64 => "" }.range_mut(..));
+        // affine
+        let a_btree = BTreeMap::<i64, f32>::new();
+        is_s(
+            Some(())
+                .iter()
+                .map(|_| &a_btree)
+                .filter(|b| !b.is_empty())
+                .flatten(),
+        );
+        is_s(
+            iter::once(Result::<i64, f32>::Ok(12))
+                .flatten()
+                .map(|_| &a_btree)
+                .filter(|b| !b.is_empty())
+                .flat_map(|m| m.iter()),
+        );
     }
 }
