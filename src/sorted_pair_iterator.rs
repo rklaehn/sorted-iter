@@ -255,6 +255,16 @@ where
         self.i.size_hint()
     }
 }
+impl<K: Ord, V, I: ExactSizeIterator + Iterator<Item = (K, V)>> ExactSizeIterator for Keys<I> {
+    fn len(&self) -> usize {
+        self.i.len()
+    }
+}
+impl<K: Ord, V, I: DoubleEndedIterator + Iterator<Item = (K, V)>> DoubleEndedIterator for Keys<I> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.i.next_back().map(|(k, _)| k)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct MapValues<I: Iterator, F> {
