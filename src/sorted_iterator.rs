@@ -3,7 +3,7 @@ use super::*;
 use core::cmp::Ordering::*;
 use core::cmp::{max, min, Ordering, Reverse};
 use core::iter::Peekable;
-use core::{iter, ops};
+use core::{iter, ops, option, result};
 use std::collections;
 use std::collections::BinaryHeap;
 use std::iter::FusedIterator;
@@ -376,6 +376,11 @@ impl<I: Iterator> DoubleEndedIterator for AssumeSortedByItem<I> where I: DoubleE
 // mark common std traits
 impl<I> SortedByItem for iter::Empty<I> {}
 impl<I> SortedByItem for iter::Once<I> {}
+impl<'a, T> SortedByItem for option::Iter<'a, T> {}
+impl<'a, T> SortedByItem for result::Iter<'a, T> {}
+impl<T> SortedByItem for option::IntoIter<T> {}
+impl<T> SortedByItem for result::IntoIter<T> {}
+
 impl<I: SortedByItem> SortedByItem for iter::Take<I> {}
 impl<I: SortedByItem> SortedByItem for iter::Skip<I> {}
 impl<I: SortedByItem> SortedByItem for iter::StepBy<I> {}
@@ -412,10 +417,27 @@ impl<I: Iterator> SortedByItem for MultiwayUnion<I> {}
 
 impl<I: SortedByItem> SortedByItem for Box<I> {}
 
+impl<I: OneOrLess, F> SortedByItem for iter::Map<I, F> {}
+impl<Iin, J, Iout, F> SortedByItem for iter::FlatMap<Iin, J, F>
+where
+    Iin: OneOrLess,
+    J: IntoIterator<IntoIter = Iout>,
+    Iout: SortedByItem,
+{
+}
+impl<Iin, J, Iout> SortedByItem for iter::Flatten<Iin>
+where
+    Iin: OneOrLess + Iterator<Item = J>,
+    J: IntoIterator<IntoIter = Iout>,
+    Iout: SortedByItem,
+{
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use core::fmt::Debug;
+    use std::collections::BTreeMap;
 
     /// just a helper to get good output when a check fails
     fn binary_op<E: Debug, R: Eq + Debug>(a: E, b: E, expected: R, actual: R) -> bool {
@@ -573,5 +595,21 @@ mod tests {
         is_s(s().symmetric_difference(s()));
         is_s(multiway_union(vec![s(), s(), s()]));
         is_s(multiway_union(iter::once(s())));
+        // one_or_less
+        let a_btree = BTreeMap::<i64, f32>::new();
+        is_s(
+            Some(())
+                .iter()
+                .map(|_| &a_btree)
+                .filter(|b| !b.is_empty())
+                .flat_map(|m| m.keys()),
+        );
+        is_s(
+            iter::once(Some(()))
+                .flatten()
+                .map(|_| &a_btree)
+                .filter(|b| !b.is_empty())
+                .flat_map(|m| m.keys()),
+        );
     }
 }
