@@ -288,6 +288,24 @@ where
         self.i.size_hint()
     }
 }
+impl<K: Ord, V, W, I, F> ExactSizeIterator for MapValues<I, F>
+where
+    I: ExactSizeIterator + Iterator<Item = (K, V)>,
+    F: FnMut(V) -> W,
+{
+    fn len(&self) -> usize {
+        self.i.len()
+    }
+}
+impl<K: Ord, V, W, I, F> DoubleEndedIterator for MapValues<I, F>
+where
+    I: DoubleEndedIterator + Iterator<Item = (K, V)>,
+    F: FnMut(V) -> W,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.i.next_back().map(|(k, v)| (k, (self.f)(v)))
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct FilterMapValues<I: Iterator, F> {
