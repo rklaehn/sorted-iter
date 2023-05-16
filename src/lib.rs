@@ -150,8 +150,11 @@ extern crate quickcheck_macros;
 
 use core::cmp::Ordering;
 
+pub mod affine_iterator;
 pub mod sorted_iterator;
 pub mod sorted_pair_iterator;
+
+pub use affine_iterator::Affine;
 
 use crate::sorted_iterator::*;
 use crate::sorted_pair_iterator::*;
