@@ -367,10 +367,7 @@ impl<I: Iterator> ExactSizeIterator for AssumeSortedByItem<I> where I: ExactSize
 
 impl<I: Iterator> FusedIterator for AssumeSortedByItem<I> where I: FusedIterator {}
 
-impl<I: Iterator> DoubleEndedIterator for AssumeSortedByItem<I>
-where
-    I: DoubleEndedIterator,
-{
+impl<I: Iterator> DoubleEndedIterator for AssumeSortedByItem<I> where I: DoubleEndedIterator {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.i.next_back()
     }
@@ -420,17 +417,17 @@ impl<I: Iterator> SortedByItem for MultiwayUnion<I> {}
 
 impl<I: SortedByItem> SortedByItem for Box<I> {}
 
-impl<I: Affine, F> SortedByItem for iter::Map<I, F> {}
+impl<I: OneOrLess, F> SortedByItem for iter::Map<I, F> {}
 impl<Iin, J, Iout, F> SortedByItem for iter::FlatMap<Iin, J, F>
 where
-    Iin: Affine,
+    Iin: OneOrLess,
     J: IntoIterator<IntoIter = Iout>,
     Iout: SortedByItem,
 {
 }
 impl<Iin, J, Iout> SortedByItem for iter::Flatten<Iin>
 where
-    Iin: Affine + Iterator<Item = J>,
+    Iin: OneOrLess + Iterator<Item = J>,
     J: IntoIterator<IntoIter = Iout>,
     Iout: SortedByItem,
 {
@@ -598,7 +595,7 @@ mod tests {
         is_s(s().symmetric_difference(s()));
         is_s(multiway_union(vec![s(), s(), s()]));
         is_s(multiway_union(iter::once(s())));
-        // affine
+        // one_or_less
         let a_btree = BTreeMap::<i64, f32>::new();
         is_s(
             Some(())

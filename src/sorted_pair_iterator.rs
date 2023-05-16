@@ -383,17 +383,17 @@ impl<'a, K, V> SortedByKey for collections::btree_map::RangeMut<'a, K, V> {}
 
 impl<I: SortedByKey> SortedByKey for Box<I> {}
 
-impl<I: Affine, F> SortedByKey for iter::Map<I, F> {}
+impl<I: OneOrLess, F> SortedByKey for iter::Map<I, F> {}
 impl<Iin, J, Iout, F> SortedByKey for iter::FlatMap<Iin, J, F>
 where
-    Iin: Affine,
+    Iin: OneOrLess,
     J: IntoIterator<IntoIter = Iout>,
     Iout: SortedByKey,
 {
 }
 impl<Iin, J, Iout> SortedByKey for iter::Flatten<Iin>
 where
-    Iin: Affine + Iterator<Item = J>,
+    Iin: OneOrLess + Iterator<Item = J>,
     J: IntoIterator<IntoIter = Iout>,
     Iout: SortedByKey,
 {
@@ -553,7 +553,7 @@ mod tests {
         is_s(btreemap! { 0i64 => "" }.iter_mut());
         is_s(btreemap! { 0i64 => "" }.range(..));
         is_s(btreemap! { 0i64 => "" }.range_mut(..));
-        // affine
+        // one_or_less
         let a_btree = BTreeMap::<i64, f32>::new();
         is_s(
             Some(())
