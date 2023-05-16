@@ -1,12 +1,12 @@
 [package]
 name = "sorted-iter"
-version = "0.1.10"
+version = "0.1.11"
 authors = ["Rüdiger Klaehn <rklaehn@protonmail.com>"]
 description = "Typesafe extensions for sorted iterators, including set and relational operations"
 repository = "https://github.com/rklaehn/sorted-iter"
 license = "MIT OR Apache-2.0"
-keywords = ["iterator", "sorted", "set", "relational"]
-categories = ["data-structures"]
+keywords = ["hash", "digest", "streaming"]
+categories = ["cryptography"]
 edition = "2018"
 readme = "README.md"
 homepage = "https://github.com/rklaehn"
