@@ -16,3 +16,8 @@ homepage = "https://github.com/rklaehn"
 quickcheck = "0.9"
 quickcheck_macros = "0.8"
 maplit = "1.0"
+criterion = "0.5"
+
+[[bench]]
+name = "intersection"
+harness = false
