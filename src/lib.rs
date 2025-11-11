@@ -183,7 +183,7 @@ pub trait SortedIterator: Iterator + Sized {
     {
         Intersection {
             a: self,
-            b: other.peekable(),
+            b: other,
         }
     }
 

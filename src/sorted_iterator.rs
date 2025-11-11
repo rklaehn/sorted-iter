@@ -184,7 +184,7 @@ where
 
 pub struct Intersection<I: Iterator, J: Iterator> {
     pub(crate) a: I,
-    pub(crate) b: Peekable<J>,
+    pub(crate) b: J,
 }
 
 impl<I: Iterator + Clone, J: Iterator + Clone> Clone for Intersection<I, J>
@@ -204,19 +204,19 @@ impl<K: Ord, I: Iterator<Item = K>, J: Iterator<Item = K>> Iterator for Intersec
     type Item = K;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(a) = self.a.next() {
-            while let Some(b) = self.b.peek() {
-                let order = a.cmp(b);
-                if order == Less {
-                    break;
+        let mut a = self.a.next()?;
+        let mut b = self.b.next()?;
+        loop {
+            match a.cmp(&b) {
+                Less => {
+                    a = self.a.next()?;
                 }
-                self.b.next();
-                if order == Equal {
-                    return Some(a);
+                Greater => {
+                    b = self.b.next()?;
                 }
+                Equal => return Some(a),
             }
         }
-        None
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
