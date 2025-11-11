@@ -161,6 +161,15 @@ use crate::sorted_pair_iterator::*;
 
 #[deny(missing_docs)]
 
+macro_rules! some_or_return {
+    ($expr:expr, $ret:expr) => {
+        match $expr {
+            Some(val) => val,
+            None => return $ret,
+        }
+    };
+}
+
 /// set operations for iterators where the items are sorted according to the natural order
 pub trait SortedIterator: Iterator + Sized {
     /// Visits the values representing the union, i.e., all the values in `self` or `other`,
@@ -240,22 +249,21 @@ pub trait SortedIterator: Iterator + Sized {
 
     /// Returns `true` if this sorted iterator is a subset of another, i.e., `other` contains at
     /// least all the values in `self`.
-    fn is_subset<J>(self, mut other: J) -> bool
+    fn is_subset<J>(self, other: J) -> bool
     where
         J: SortedIterator<Item = Self::Item>,
         Self::Item: Ord,
     {
-        'next_a: for a in self {
-            while let Some(b) = other.next() {
-                match a.cmp(&b) {
-                    Ordering::Less => break,
-                    Ordering::Equal => continue 'next_a,
-                    Ordering::Greater => continue,
-                }
+        let mut self_iter = self.into_iter();
+        let mut a = some_or_return!(self_iter.next(), true);
+        for b in other {
+            match a.cmp(&b) {
+                Ordering::Less => return false,
+                Ordering::Equal => a = some_or_return!(self_iter.next(), true),
+                Ordering::Greater => continue,
             }
-            return false;
         }
-        true
+        false
     }
 
     /// Returns `true` if this sorted iterator is a superset of another, i.e., `self` contains at
